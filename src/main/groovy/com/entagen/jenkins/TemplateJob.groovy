@@ -1,5 +1,8 @@
 package com.entagen.jenkins
 
+import groovy.transform.ToString;
+
+@ToString
 class TemplateJob {
     String jobName
     String baseJobName
