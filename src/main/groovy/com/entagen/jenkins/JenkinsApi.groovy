@@ -73,7 +73,6 @@ class JenkinsApi {
 		if (!createInView) {
 			return ""
 		}
-		
 		List<String> elements = createInView.tokenize("/")
 		elements = elements.collect { "view/" + it + "/" }
 		elements.join();

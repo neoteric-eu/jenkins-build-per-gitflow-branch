@@ -24,7 +24,6 @@ class JenkinsJobManager {
 
     JenkinsJobManager(Map props) {
         for (property in props) {
-			println property.key + " -> " + property.value
             this."${property.key}" = property.value
         }
         initJenkinsApi()
@@ -58,7 +57,7 @@ class JenkinsJobManager {
         List<String> currentTemplateDrivenJobNames = templateDrivenJobNames(templateJobs, allJobNames)
 		println "-------------------------------------"
 		println "currentTemplateDrivenJobNames:" + currentTemplateDrivenJobNames
-        List<String> nonTemplateBranchNames = allBranchNames - templateBranchName
+        List<String> nonTemplateBranchNames = allBranchNames - templateBranchName + "development" + "master"
         println "-------------------------------------"
         println "nonTemplateBranchNames:" + nonTemplateBranchNames
         List<ConcreteJob> expectedJobs = this.expectedJobs(templateJobs, nonTemplateBranchNames)
