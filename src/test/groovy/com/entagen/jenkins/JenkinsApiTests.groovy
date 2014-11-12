@@ -2,8 +2,11 @@ package com.entagen.jenkins
 
 import org.apache.http.conn.HttpHostConnectException
 import org.junit.Test
+
 import groovy.mock.interceptor.MockFor
+
 import org.apache.http.client.HttpResponseException
+
 import groovyx.net.http.RESTClient
 import net.sf.json.JSON
 import net.sf.json.JSONObject
@@ -41,6 +44,11 @@ class JenkinsApiTests extends GroovyTestCase {
         }
     }
 
+	@Test public void testCreateInViewResolutor() {
+		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+		assert api.resolveViewPath("abc/def") == "view/abc/view/def/"
+	}
+	
     @Test public void testGetJobNames_matchPrefix() {
         JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 

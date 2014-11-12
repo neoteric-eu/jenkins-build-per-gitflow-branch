@@ -69,14 +69,14 @@ class JenkinsApi {
         }
     }
 	
-	String resolveViewPath(String createInView) {
+	public String resolveViewPath(String createInView) {
 		if (!createInView) {
 			return ""
 		}
-		println "----> " + createInView
-		List<String> viewElems = createInView.tokenize("/")​
-		viewElems = viewElems.collect { "view/" + it + "/" }
-		viewElems.join()​
+		
+		List<String> elements = createInView.tokenize("/")
+		elements = elements.collect { "view/" + it + "/" }
+		elements.join();
 	}
 
     void startJob(ConcreteJob job) {
