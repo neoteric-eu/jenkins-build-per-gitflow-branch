@@ -51,8 +51,7 @@ class JenkinsApi {
         response.data.text
     }
 
-    void cloneJobForBranch(ConcreteJob missingJob, List<TemplateJob> templateJobs, String createInView = "") {
-		println "-----> createInView before" + createInView
+    void cloneJobForBranch(ConcreteJob missingJob, List<TemplateJob> templateJobs, String createInView) {
 		String createInViewPath = resolveViewPath(createInView)
 		println "-----> createInView after" + createInView
         String missingJobConfig = configForMissingJob(missingJob, templateJobs)
@@ -71,6 +70,9 @@ class JenkinsApi {
     }
 	
 	String resolveViewPath(String createInView) {
+		if (!createInView) {
+			return ""
+		}
 		List<String> viewElems = createInView.tokenize("/")​
 		viewElems = viewElems.collect { "view/" + it + "/" }
 		viewElems.join()​
