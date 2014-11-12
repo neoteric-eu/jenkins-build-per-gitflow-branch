@@ -7,6 +7,7 @@ class JenkinsJobManager {
     String templateBranchName
     String gitUrl
     String nestedView
+    String createInView
     String jenkinsUrl
     String branchNameRegex
     String viewRegex
@@ -56,13 +57,13 @@ class JenkinsJobManager {
         }
     }
 
-    public void createMissingJobs(List<ConcreteJob> expectedJobs, List<String> currentJobs, List<TemplateJob> templateJobs) {
+    public void createMissingJobs(List<ConcreteJob> expectedJobs, List<String> currentJobs, List<TemplateJob> templateJobs, String createInView) {
         List<ConcreteJob> missingJobs = expectedJobs.findAll { !currentJobs.contains(it.jobName) }
         if (!missingJobs) return
 
         for(ConcreteJob missingJob in missingJobs) {
             println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
-            jenkinsApi.cloneJobForBranch(missingJob, templateJobs)
+            jenkinsApi.cloneJobForBranch(missingJob, templateJobs, createInView)
             if (startOnCreate) {
                 jenkinsApi.startJob(missingJob)
             }
@@ -95,6 +96,7 @@ class JenkinsJobManager {
     }
 
     List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
+		//TODO templateBranchName more than 1
         String regex = /^($templateJobPrefix-[^-]*)-($templateBranchName)$/
 
         List<TemplateJob> templateJobs = allJobNames.findResults { String jobName ->

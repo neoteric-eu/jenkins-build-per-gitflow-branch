@@ -8,3 +8,4 @@ build
 
 out
 atlassian-ide-plugin.xml
+/bin/

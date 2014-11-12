@@ -51,12 +51,14 @@ class JenkinsApi {
         response.data.text
     }
 
-    void cloneJobForBranch(ConcreteJob missingJob, List<TemplateJob> templateJobs) {
+    void cloneJobForBranch(ConcreteJob missingJob, List<TemplateJob> templateJobs, String createInView) {
+		
+		String createInViewPath = resolveViewPath(createInView)
         String missingJobConfig = configForMissingJob(missingJob, templateJobs)
         TemplateJob templateJob = missingJob.templateJob
 
         //Copy job with jenkins copy job api, this will make sure jenkins plugins get the call to make a copy if needed (promoted builds plugin needs this)
-        post('createItem', missingJobConfig, [name: missingJob.jobName, mode: 'copy', from: templateJob.jobName], ContentType.XML)
+        post(createInViewPath + 'createItem', missingJobConfig, [name: missingJob.jobName, mode: 'copy', from: templateJob.jobName], ContentType.XML)
 
         post('job/' + missingJob.jobName + "/config.xml", missingJobConfig, [:], ContentType.XML)
         //Forced disable enable to work around Jenkins' automatic disabling of clones jobs
@@ -66,6 +68,15 @@ class JenkinsApi {
             post('job/' + missingJob.jobName + '/enable')
         }
     }
+	
+	String resolveViewPath(String createInView) {
+		if (!createInView) {
+			return ""
+		}
+		List<String> viewElems = createInView.tokenize("/")​
+		viewElems = viewElems.collect { "view/" + it + "/" }
+		viewElems.join()​
+	}
 
     void startJob(ConcreteJob job) {
         println "Starting job ${job.jobName}."

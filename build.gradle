@@ -1,5 +1,5 @@
 apply plugin: 'groovy'
-apply plugin: 'idea'
+apply plugin: 'eclipse'
 
 repositories {
     mavenCentral()
@@ -22,13 +22,6 @@ task createSourceDirs(description : 'Create empty source directories for all def
     }
 }
 
-idea {
-    project {
-        jdkName = '1.6'
-    }
-}
-
-
 task syncWithRepo(dependsOn: 'classes', type: JavaExec) {
     main = 'com.entagen.jenkins.Main'
     classpath = sourceSets.main.runtimeClasspath
@@ -40,11 +33,5 @@ task syncWithRepo(dependsOn: 'classes', type: JavaExec) {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.0'
+    gradleVersion = '1.12'
 }
-
-
-
-
-
-
