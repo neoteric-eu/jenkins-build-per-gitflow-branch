@@ -51,7 +51,7 @@ class JenkinsJobManager {
         List<String> nonTemplateBranchNames = allBranchNames - templateBranchName
         List<ConcreteJob> expectedJobs = this.expectedJobs(templateJobs, nonTemplateBranchNames)
 
-        createMissingJobs(expectedJobs, currentTemplateDrivenJobNames, templateJobs)
+        createMissingJobs(expectedJobs, currentTemplateDrivenJobNames, templateJobs, createInView)
         if (!noDelete) {
             deleteDeprecatedJobs(currentTemplateDrivenJobNames - expectedJobs.jobName)
         }
