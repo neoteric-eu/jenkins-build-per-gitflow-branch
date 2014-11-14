@@ -57,7 +57,7 @@ class JenkinsJobManager {
         List<String> currentTemplateDrivenJobNames = templateDrivenJobNames(templateJobs, allJobNames)
 		println "-------------------------------------"
 		println "currentTemplateDrivenJobNames:" + currentTemplateDrivenJobNames
-        List<String> nonTemplateBranchNames = allBranchNames - templateBranchName + "development" + "master"
+        List<String> nonTemplateBranchNames = allBranchNames - templateBranchName + "development" + "master" + "templates-feature" + "templates-release" + "templates-hotfix"
         println "-------------------------------------"
         println "nonTemplateBranchNames:" + nonTemplateBranchNames
         List<ConcreteJob> expectedJobs = this.expectedJobs(templateJobs, nonTemplateBranchNames)
