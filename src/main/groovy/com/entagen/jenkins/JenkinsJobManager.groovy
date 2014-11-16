@@ -130,9 +130,10 @@ class JenkinsJobManager {
 		if (missingJobs) {
 			for(ConcreteJob missingJob in missingJobs) {
 				println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
-//				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView)
+				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView)
+				//TODO start on Create per each template
 				if (startOnCreate) {
-//					jenkinsApi.startJob(missingJob)
+					jenkinsApi.startJob(missingJob)
 				}
 			}
 		}
@@ -140,7 +141,7 @@ class JenkinsJobManager {
 		if (!noDelete && jobsToDelete) {
 			println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
 			jobsToDelete.each { String jobName ->
-				//			jenkinsApi.deleteJob(jobName)
+//							jenkinsApi.deleteJob(jobName)
 			}
 		}
 	}
