@@ -59,7 +59,7 @@ class JenkinsJobManager {
 		println "Template Jobs:" + templateJobs
 
 		List<String> jobsWithJobPrefix = allJobNames.findAll { jobName ->
-			jobName.startsWith(jobPrefix)
+			jobName.startsWith(jobPrefix + '-')
 		}
 		println "-------------------------------------"
 		println "Jobs with provided prefix:" + jobsWithJobPrefix
