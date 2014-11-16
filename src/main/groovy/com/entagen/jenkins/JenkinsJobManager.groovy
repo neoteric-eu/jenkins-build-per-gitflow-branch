@@ -9,7 +9,6 @@ class JenkinsJobManager {
 
 	String templateJobPrefix
 	String jobPrefix
-	String templateBranchName
 	String gitUrl
 	String nestedView
 	String createJobInView
@@ -71,7 +70,6 @@ class JenkinsJobManager {
 	}
 
 	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
-		//TODO templateBranchName more than 1
 		String regex = /^($templateJobPrefix)-(.*)-($templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
 
 		List<TemplateJob> templateJobs = allJobNames.findResults { String jobName ->
