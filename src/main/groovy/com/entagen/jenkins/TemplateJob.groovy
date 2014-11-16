@@ -1,8 +1,10 @@
 package com.entagen.jenkins
 
+import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 
 @ToString
+@EqualsAndHashCode
 class TemplateJob {
     String jobName
     String baseJobName
@@ -14,7 +16,7 @@ class TemplateJob {
         return "$baseJobName-$safeBranchName"
     }
     
-    ConcreteJob concreteJobForBranch(String branchName) {
-        ConcreteJob concreteJob = new ConcreteJob(templateJob: this, branchName: branchName, jobName: jobNameForBranch(branchName) )
+    ConcreteJob concreteJobForBranch(String jobPrefix, String branchName) {
+        ConcreteJob concreteJob = new ConcreteJob(templateJob: this, branchName: branchName, jobName: jobPrefix + '-' + jobNameForBranch(branchName) )
     }
 }

@@ -3,185 +3,173 @@ package com.entagen.jenkins
 import java.util.regex.Pattern
 
 class JenkinsJobManager {
-    String templateJobPrefix
-    String templateBranchName
-    String gitUrl
-    String nestedView
-    String createInView
-    String jenkinsUrl
-    String branchNameRegex
-    String viewRegex
-    String jenkinsUser
-    String jenkinsPassword
-    
-    Boolean dryRun = false
-    Boolean noViews = false
-    Boolean noDelete = false
-    Boolean startOnCreate = false
 
-    JenkinsApi jenkinsApi
-    GitApi gitApi
 
-    JenkinsJobManager(Map props) {
-        for (property in props) {
-            this."${property.key}" = property.value
-        }
-        initJenkinsApi()
-        initGitApi()
-    }
+	//TODO 1 - hardcoded template branches, enable to use only one template for all (feature, release, hotfix?)
 
-    void syncWithRepo() {
-        List<String> allBranchNames = gitApi.branchNames
+	String templateJobPrefix
+	String jobPrefix
+	String templateBranchName
+	String gitUrl
+	String nestedView
+	String createJobInView
+	String jenkinsUrl
+	String jenkinsUser
+	String jenkinsPassword
+
+	String featureSuffix = "feature-"
+	String hotfixSuffix = "hotfix-"
+	String releaseSuffix = "release-"
+
+	String templateFeatureSuffix = "feature"
+	String templateHotfixSuffix = "hotfix"
+	String templateReleaseSuffix = "release"
+
+	def branchSuffixMatch = [(templateFeatureSuffix):featureSuffix,
+		(templateHotfixSuffix): hotfixSuffix,
+		(templateReleaseSuffix): releaseSuffix
+	]
+
+	Boolean dryRun = false
+	Boolean noDelete = false
+	Boolean startOnCreate = false
+
+	JenkinsApi jenkinsApi
+	GitApi gitApi
+
+	JenkinsJobManager(Map props) {
+		for (property in props) {
+			this."${property.key}" = property.value
+		}
+		initJenkinsApi()
+		initGitApi()
+	}
+
+	void syncWithRepo() {
+		List<String> allBranchNames = gitApi.branchNames
 		println "-------------------------------------"
 		println "All branch names:" + allBranchNames
-		
-        List<String> allJobNames = jenkinsApi.jobNames
-        println "-------------------------------------"
-        println "All job names:" + allJobNames
 
-        // ensure that there is at least one job matching the template pattern, collect the set of template jobs
-        List<TemplateJob> templateJobs = findRequiredTemplateJobs(allJobNames)
+		List<String> allJobNames = jenkinsApi.jobNames
+		println "-------------------------------------"
+		println "All job names:" + allJobNames
+
+		// ensure that there is at least one job matching the template pattern, collect the set of template jobs
+		List<TemplateJob> templateJobs = findRequiredTemplateJobs(allJobNames)
 		println "-------------------------------------"
 		println "Template Jobs:" + templateJobs
 
-        // create any missing template jobs and delete any jobs matching the template patterns that no longer have branches
-        syncJobs(allBranchNames, allJobNames, templateJobs)
-
-        // create any missing branch views, scoped within a nested view if we were given one
-        if (!noViews) {
-            syncViews(allBranchNames)
-        }
-    }
-
-    public void syncJobs(List<String> allBranchNames, List<String> allJobNames, List<TemplateJob> templateJobs) {
-        List<String> currentTemplateDrivenJobNames = templateDrivenJobNames(templateJobs, allJobNames)
+		List<String> jobsWithJobPrefix = allJobNames.findAll { jobName ->
+			jobName.startsWith(jobPrefix)
+		}
 		println "-------------------------------------"
-		println "currentTemplateDrivenJobNames:" + currentTemplateDrivenJobNames
-        List<String> nonTemplateBranchNames = allBranchNames - templateBranchName + "development" + "master" + "templates-feature" + "templates-release" + "templates-hotfix"
-        println "-------------------------------------"
-        println "nonTemplateBranchNames:" + nonTemplateBranchNames
-        List<ConcreteJob> expectedJobs = this.expectedJobs(templateJobs, nonTemplateBranchNames)
-        println "-------------------------------------"
-        println "expectedJobs:" + expectedJobs
+		println "Jobs with provided prefix:" + jobsWithJobPrefix
 
-        createMissingJobs(expectedJobs, currentTemplateDrivenJobNames, templateJobs, createInView)
-        if (!noDelete) {
-            deleteDeprecatedJobs(currentTemplateDrivenJobNames - expectedJobs.jobName)
-        }
-    }
+		// create any missing template jobs and delete any jobs matching the template patterns that no longer have branches
+		syncJobs(allBranchNames, jobsWithJobPrefix, templateJobs)
 
-    public void createMissingJobs(List<ConcreteJob> expectedJobs, List<String> currentJobs, List<TemplateJob> templateJobs, String createInView) {
-        List<ConcreteJob> missingJobs = expectedJobs.findAll { !currentJobs.contains(it.jobName) }
-        if (!missingJobs) return
+	}
 
-        for(ConcreteJob missingJob in missingJobs) {
-            println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
-            jenkinsApi.cloneJobForBranch(missingJob, templateJobs, createInView)
-            if (startOnCreate) {
-                jenkinsApi.startJob(missingJob)
-            }
-        }
-
-    }
-
-    public void deleteDeprecatedJobs(List<String> deprecatedJobNames) {
-        if (!deprecatedJobNames) return
-        println "Deleting deprecated jobs:\n\t${deprecatedJobNames.join('\n\t')}"
-        deprecatedJobNames.each { String jobName ->
-            jenkinsApi.deleteJob(jobName)
-        }
-    }
-
-    public List<ConcreteJob> expectedJobs(List<TemplateJob> templateJobs, List<String> branchNames) {
-        branchNames.collect { String branchName ->
-            templateJobs.collect { TemplateJob templateJob -> templateJob.concreteJobForBranch(branchName) }
-        }.flatten()
-    }
-
-    public List<String> templateDrivenJobNames(List<TemplateJob> templateJobs, List<String> allJobNames) {
-        List<String> templateJobNames = templateJobs.jobName
-        List<String> templateBaseJobNames = templateJobs.baseJobName
-
-        // don't want actual template jobs, just the jobs that were created from the templates
-        return (allJobNames - templateJobNames).findAll { String jobName ->
-            templateBaseJobNames.find { String baseJobName -> jobName.startsWith(baseJobName)}
-        }
-    }
-
-    List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
+	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
 		//TODO templateBranchName more than 1
-        String regex = /^($templateJobPrefix-[^-]*)-($templateBranchName)$/
+		String regex = /^($templateJobPrefix)-(.*)-($templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
 
-        List<TemplateJob> templateJobs = allJobNames.findResults { String jobName ->
-            TemplateJob templateJob = null
-            jobName.find(regex) { full, baseJobName, branchName ->
-                templateJob = new TemplateJob(jobName: full, baseJobName: baseJobName, templateBranchName: branchName)
-            }
-            return templateJob
-        }
+		List<TemplateJob> templateJobs = allJobNames.findResults { String jobName ->
 
-        assert templateJobs?.size() > 0, "Unable to find any jobs matching template regex: $regex\nYou need at least one job to match the templateJobPrefix and templateBranchName suffix arguments"
-        return templateJobs
-    }
+			TemplateJob templateJob = null
+			jobName.find(regex) {full, templateName, baseJobName, branchName ->
+				templateJob = new TemplateJob(jobName: full, baseJobName: baseJobName, templateBranchName: branchName)
+			}
+			return templateJob
+		}
 
-    public void syncViews(List<String> allBranchNames) {
-        List<String> existingViewNames = jenkinsApi.getViewNames(this.nestedView)
-        List<BranchView> expectedBranchViews = allBranchNames.collect { String branchName -> new BranchView(branchName: branchName, templateJobPrefix: this.templateJobPrefix) }
+		assert templateJobs?.size() > 0, "Unable to find any jobs matching template regex: $regex\nYou need at least one job to match the templateJobPrefix and templateBranchName (feature, hotfix, release) suffix arguments"
+		return templateJobs
+	}
 
-        List<BranchView> missingBranchViews = expectedBranchViews.findAll { BranchView branchView -> !existingViewNames.contains(branchView.viewName)}
-        addMissingViews(missingBranchViews)
+	public void syncJobs(List<String> allBranchNames, List<String> jobNames, List<TemplateJob> templateJobs) {
 
-        if (!noDelete) {
-            List<String> deprecatedViewNames = getDeprecatedViewNames(existingViewNames, expectedBranchViews)
-            deleteDeprecatedViews(deprecatedViewNames)
-        }
-    }
+		def templateJobsByBranch = templateJobs.groupBy({ template -> template.templateBranchName })
 
-    public void addMissingViews(List<BranchView> missingViews) {
-        println "Missing views: $missingViews"
-        for (BranchView missingView in missingViews) {
-            jenkinsApi.createViewForBranch(missingView, this.nestedView, this.viewRegex)
-        }
-    }
+		List<ConcreteJob> missingJobs = [];
+		List<String> jobsToDelete = [];
 
-    public List<String> getDeprecatedViewNames(List<String> existingViewNames, List<BranchView> expectedBranchViews) {
-         return existingViewNames?.findAll { it.startsWith(this.templateJobPrefix) } - expectedBranchViews?.viewName ?: []
-    }
+		templateJobsByBranch.keySet().each { templateBranchToProcess ->
+			println "-> Checking $templateBranchToProcess branches"
+			List<String> branchesWithCorrespondingTemplate = allBranchNames.findAll { branchName ->
+				branchName.startsWith(branchSuffixMatch[templateBranchToProcess])
+			}
 
-    public void deleteDeprecatedViews(List<String> deprecatedViewNames) {
-        println "Deprecated views: $deprecatedViewNames"
+			println "---> Founded corresponding branches: $branchesWithCorrespondingTemplate"
+			branchesWithCorrespondingTemplate.each { branchToProcess ->
+				println "-----> Processing branch: $branchToProcess"
+				List<ConcreteJob> expectedJobsPerBranch = templateJobsByBranch[templateBranchToProcess].collect { TemplateJob templateJob ->
+					templateJob.concreteJobForBranch(jobPrefix, branchToProcess)
+				}
+				println "-------> Expected jobs:"
+				expectedJobsPerBranch.each { println "           $it" }
+				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess) }
+				println "-------> Job Names per branch:"
+				jobNamesPerBranch.each { println "           $it" }
+				List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll { expectedJob ->
+					!jobNamesPerBranch.any {it.contains(expectedJob.jobName) }
+				}
+				println "-------> Missing jobs:"
+				missingJobsPerBranch.each { println "           $it" }
+				missingJobs.addAll(missingJobsPerBranch)
+			}
 
-        for(String deprecatedViewName in deprecatedViewNames) {
-            jenkinsApi.deleteView(deprecatedViewName, this.nestedView)
-        }
+			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchSuffixMatch[templateBranchToProcess]) }
+			List<String> jobsToDeletePerBranch = deleteCandidates.findAll { candidate ->
+				!branchesWithCorrespondingTemplate.any { candidate.endsWith(it) }
+			}
 
-    }
+			println "-----> Jobs to delete:"
+			jobsToDeletePerBranch.each { println "         $it" }
+			jobsToDelete.addAll(jobsToDeletePerBranch)
+		}
+		println "\nSummary:\n---------------"
+		if (missingJobs) {
+			for(ConcreteJob missingJob in missingJobs) {
+				println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
+//				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView)
+				if (startOnCreate) {
+//					jenkinsApi.startJob(missingJob)
+				}
+			}
+		}
+		
+		if (!noDelete && jobsToDelete) {
+			println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
+			jobsToDelete.each { String jobName ->
+				//			jenkinsApi.deleteJob(jobName)
+			}
+		}
+	}
 
-    JenkinsApi initJenkinsApi() {
-        if (!jenkinsApi) {
-            assert jenkinsUrl != null
-            if (dryRun) {
-                println "DRY RUN! Not executing any POST commands to Jenkins, only GET commands"
-                this.jenkinsApi = new JenkinsApiReadOnly(jenkinsServerUrl: jenkinsUrl)
-            } else {
-                this.jenkinsApi = new JenkinsApi(jenkinsServerUrl: jenkinsUrl)
-            }
 
-            if (jenkinsUser || jenkinsPassword) this.jenkinsApi.addBasicAuth(jenkinsUser, jenkinsPassword)
-        }
+	JenkinsApi initJenkinsApi() {
+		if (!jenkinsApi) {
+			assert jenkinsUrl != null
+			if (dryRun) {
+				println "DRY RUN! Not executing any POST commands to Jenkins, only GET commands"
+				this.jenkinsApi = new JenkinsApiReadOnly(jenkinsServerUrl: jenkinsUrl)
+			} else {
+				this.jenkinsApi = new JenkinsApi(jenkinsServerUrl: jenkinsUrl)
+			}
 
-        return this.jenkinsApi
-    }
+			if (jenkinsUser || jenkinsPassword) this.jenkinsApi.addBasicAuth(jenkinsUser, jenkinsPassword)
+		}
 
-    GitApi initGitApi() {
-        if (!gitApi) {
-            assert gitUrl != null
-            this.gitApi = new GitApi(gitUrl: gitUrl)
-            if (this.branchNameRegex){
-                this.gitApi.branchNameFilter = ~this.branchNameRegex
-            }
-        }
+		return this.jenkinsApi
+	}
 
-        return this.gitApi
-    }
+	GitApi initGitApi() {
+		if (!gitApi) {
+			assert gitUrl != null
+			this.gitApi = new GitApi(gitUrl: gitUrl)
+		}
+
+		return this.gitApi
+	}
 }
