@@ -15,8 +15,6 @@ class JenkinsJobManager {
 	String jenkinsUrl
 	String jenkinsUser
 	String jenkinsPassword
-	
-	final String SHOULD_START_PARAM_NAME = "startOnCreate"
 
 	String featureSuffix = "feature-"
 	String hotfixSuffix = "hotfix-"
@@ -133,12 +131,7 @@ class JenkinsJobManager {
 			for(ConcreteJob missingJob in missingJobs) {
 				println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
 				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView)
-				
-				String jobConfig = getJobConfig(missingJob.templateJob.jobName);
-				//TODO start on Create per each template
-				if (shouldStartJob(jobConfig)) {
-					jenkinsApi.startJob(missingJob)
-				}
+				jenkinsApi.startJob(missingJob)
 			}
 		}
 		
@@ -150,18 +143,6 @@ class JenkinsJobManager {
 		}
 	}
 	
-	public boolean shouldStartJob(String configXml) {
-		def xml = new XmlParser().parseText(configXml)
-		Node parameter = xml.properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions.find {
-			it."hudson.model.BooleanParameterDefinition".name[0].text() == SHOULD_START_PARAM_NAME
-		}
-		if (!parameter) {
-			return false
-		}
-		return parameter."hudson.model.BooleanParameterDefinition".defaultValue[0].text()
-	}
-
-
 	JenkinsApi initJenkinsApi() {
 		if (!jenkinsApi) {
 			assert jenkinsUrl != null

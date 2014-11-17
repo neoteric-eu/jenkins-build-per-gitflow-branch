@@ -4,6 +4,7 @@ import groovyx.net.http.ContentType
 import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.RESTClient
 import static groovyx.net.http.ContentType.*
+
 import org.apache.http.conn.HttpHostConnectException
 import org.apache.http.client.HttpResponseException
 import org.apache.http.HttpStatus
@@ -12,6 +13,9 @@ import org.apache.http.protocol.HttpContext
 import org.apache.http.HttpRequest
 
 class JenkinsApi {
+	
+	
+	final String SHOULD_START_PARAM_NAME = "startOnCreate"
 	String jenkinsServerUrl
 	RESTClient restClient
 	HttpRequestInterceptor requestInterceptor
@@ -78,11 +82,6 @@ class JenkinsApi {
 		elements.join();
 	}
 
-	void startJob(ConcreteJob job) {
-		println "Starting job ${job.jobName}."
-		post('job/' + job.jobName + '/build')
-	}
-
 	String configForMissingJob(ConcreteJob missingJob) {
 		TemplateJob templateJob = missingJob.templateJob
 		String config = getJobConfig(templateJob.jobName)
@@ -90,15 +89,44 @@ class JenkinsApi {
 	}
 
 	public String processConfig(String entryConfig, String branchName) {
-		def xml = new XmlParser().parseText(entryConfig)
-		def branches = xml.scm.branches
-		xml.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
+		def root = new XmlParser().parseText(entryConfig)
+		def branches = root.scm.branches
+		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
+		
+		//remove template build variable
+		Node startOnCreateParam = findStartOnCreateParameter(root)
+		if (startOnCreateParam) {
+			startOnCreateParam.parent().remove(startOnCreateParam)
+		}
 		
 		def writer = new StringWriter()
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
 		xmlPrinter.setPreserveWhitespace(true)
-		xmlPrinter.print(xml)
+		xmlPrinter.print(root)
 		return writer.toString()
+	}
+	
+	void startJob(ConcreteJob job) {
+		String templateConfig = getJobConfig(job.templateJob.jobName)
+		if (shouldStartJob(templateConfig)) {
+			println "Starting job ${job.jobName}."
+			post('job/' + job.jobName + '/build')
+		}
+	}
+	
+	public boolean shouldStartJob(String config) {
+		Node root = new XmlParser().parseText(config)
+		Node startOnCreateParam = findStartOnCreateParameter(root)
+		if (!startOnCreateParam) {
+			return false
+		}
+		return startOnCreateParam.defaultValue[0]?.text().toBoolean()
+	}
+	
+	Node findStartOnCreateParameter(Node root) {
+		return root.properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions."hudson.model.BooleanParameterDefinition".find {
+			it.name[0].text() == SHOULD_START_PARAM_NAME
+		}
 	}
 
 	void deleteJob(String jobName) {
