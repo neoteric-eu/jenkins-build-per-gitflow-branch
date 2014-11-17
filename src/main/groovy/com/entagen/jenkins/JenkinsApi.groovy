@@ -175,6 +175,8 @@ class JenkinsApi {
 	protected Integer post(String path, postBody = [:], params = [:], ContentType contentType = ContentType.URLENC) {
 
 		println "----> MAKING POST with PATH: " + path
+		println "----> MAKING POST with postBody: " + postBody
+		println "----> MAKING POST with params: " + params
 		//Added the support for jenkins CSRF option, this could be changed to be a build flag if needed.
 		//http://jenkinsurl.com/crumbIssuer/api/json  get crumb for csrf protection  json: {"crumb":"c8d8812d615292d4c0a79520bacfa7d8","crumbRequestField":".crumb"}
 		if (findCrumb) {
