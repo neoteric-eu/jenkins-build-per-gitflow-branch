@@ -95,7 +95,9 @@ class JenkinsApi {
 		xml.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
 		
 		def writer = new StringWriter()
-		new XmlNodePrinter(new PrintWriter(writer)).print(xml)
+		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
+		xmlPrinter.setPreserveWhitespace(true)
+		xmlPrinter.print(xml)
 		return writer.toString()
 	}
 
