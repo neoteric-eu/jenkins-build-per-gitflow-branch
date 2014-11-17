@@ -173,6 +173,7 @@ class JenkinsApiTests extends GroovyTestCase {
 	def result = api.processConfig(config, "release-1.0.0");
 	println result
 	}
+	
 
 	public void withJsonResponse(Map toJson, Closure closure) {
 		JSON json = toJson as JSONObject
