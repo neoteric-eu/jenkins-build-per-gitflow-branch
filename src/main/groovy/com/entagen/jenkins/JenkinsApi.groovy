@@ -99,6 +99,15 @@ class JenkinsApi {
 			startOnCreateParam.parent().remove(startOnCreateParam)
 		}
 		
+		//check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
+		def properties = root.properties
+		def parameterDefinitionsProperty = properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
+		
+		if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
+			root.remove(properties)
+		}
+		
+		
 		def writer = new StringWriter()
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
 		xmlPrinter.setPreserveWhitespace(true)

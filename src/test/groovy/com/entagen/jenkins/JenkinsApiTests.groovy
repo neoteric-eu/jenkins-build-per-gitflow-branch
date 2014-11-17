@@ -284,7 +284,6 @@ class JenkinsApiTests extends GroovyTestCase {
 		assert true == api.shouldStartJob(config)
 	}
 	
-
 	public void withJsonResponse(Map toJson, Closure closure) {
 		JSON json = toJson as JSONObject
 		MockFor mockRESTClient = new MockFor(RESTClient)
