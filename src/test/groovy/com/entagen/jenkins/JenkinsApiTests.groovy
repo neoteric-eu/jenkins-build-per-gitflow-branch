@@ -180,7 +180,7 @@ class JenkinsApiTests extends GroovyTestCase {
 	'''
 		
 	JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-	def result = api.processConfig(config, "release-1.0.0");
+	def result = api.processConfig(config, "release-1.0.0", "newGitUrl");
 	println result
 	}
 	

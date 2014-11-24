@@ -55,10 +55,10 @@ class JenkinsApi {
 		response.data.text
 	}
 
-	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView) {
+	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl) {
 		String createJobInViewPath = resolveViewPath(createJobInView)
 		println "-----> createInView after" + createJobInView
-		String missingJobConfig = configForMissingJob(missingJob)
+		String missingJobConfig = configForMissingJob(missingJob, gitUrl)
 		TemplateJob templateJob = missingJob.templateJob
 
 		//Copy job with jenkins copy job api, this will make sure jenkins plugins get the call to make a copy if needed (promoted builds plugin needs this)
@@ -82,16 +82,20 @@ class JenkinsApi {
 		elements.join();
 	}
 
-	String configForMissingJob(ConcreteJob missingJob) {
+	String configForMissingJob(ConcreteJob missingJob, String gitUrl) {
 		TemplateJob templateJob = missingJob.templateJob
 		String config = getJobConfig(templateJob.jobName)
-		return processConfig(config, missingJob.branchName)
+		return processConfig(config, missingJob.branchName, gitUrl)
 	}
 
-	public String processConfig(String entryConfig, String branchName) {
+	public String processConfig(String entryConfig, String branchName, String gitUrl) {
 		def root = new XmlParser().parseText(entryConfig)
+		// update branch name
 		def branches = root.scm.branches
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
+		
+		// update GIT url
+		root.scm.userRemoteConfigs."hudson.plugins.git.UserRemoteConfig".url[0].value = "$gitUrl"
 		
 		//remove template build variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)
