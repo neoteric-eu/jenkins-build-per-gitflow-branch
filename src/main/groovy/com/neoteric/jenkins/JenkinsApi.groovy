@@ -97,7 +97,9 @@ class JenkinsApi {
 		root.scm.userRemoteConfigs."hudson.plugins.git.UserRemoteConfig".url[0].value = "$gitUrl"
 		
 		//update Sonar
-		root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
+		if (root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0] != null) {
+			root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
+		}
 		
 		
 		//remove template build variable
