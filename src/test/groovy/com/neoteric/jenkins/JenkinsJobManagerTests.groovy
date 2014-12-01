@@ -1,12 +1,25 @@
-package com.entagen.jenkins
+package com.neoteric.jenkins
 
 import static org.junit.Assert.*;
 
+import org.junit.Before;
 import org.junit.Test
 
-class JenkinsJobManagerTests extends GroovyTestCase {
-	@Test public void testFindTemplateJobs() {
-		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "myproj", templateBranchName: "master", jenkinsUrl: "http://dummy.com", gitUrl: "git@dummy.com:company/myproj.git")
+import com.neoteric.jenkins.JenkinsJobManager;
+import com.neoteric.jenkins.TemplateJob;
+
+class JenkinsJobManagerTests {
+
+	JenkinsJobManager jenkinsJobManager
+	
+	@Before
+	void before() {
+		jenkinsJobManager = new JenkinsJobManager(jobPrefix: "myproj", jenkinsUrl: "http://dummy.com", gitUrl: "git@dummy.com:company/myproj.git")
+	}
+	
+	@Test
+	public void testFindTemplateJobs() {
+		
 		List<String> allJobNames = [
 			"myproj-foo-master",
 			"otherproj-foo-master",
@@ -21,7 +34,8 @@ class JenkinsJobManagerTests extends GroovyTestCase {
 	}
 
 
-	@Test public void testFindTemplateJobs_noMatchingJobsThrowsException() {
+	@Test
+	public void testFindTemplateJobs_noMatchingJobsThrowsException() {
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "myproj", templateBranchName: "master", jenkinsUrl: "http://dummy.com", gitUrl: "git@dummy.com:company/myproj.git")
 		List<String> allJobNames = [
 			"otherproj-foo-master",
@@ -33,7 +47,8 @@ class JenkinsJobManagerTests extends GroovyTestCase {
 	}
 
 
-	@Test public void testTemplateJobSafeNames() {
+	@Test
+	public void testTemplateJobSafeNames() {
 		TemplateJob templateJob = new TemplateJob(jobName: "myproj-foo-master", baseJobName: "myproj-foo", templateBranchName: "master")
 
 		assert "myproj-foo-myfeature" == templateJob.jobNameForBranch("myfeature")
@@ -41,17 +56,20 @@ class JenkinsJobManagerTests extends GroovyTestCase {
 	}
 
 
-	@Test public void testInitGitApi_noBranchRegex() {
+	@Test
+	public void testInitGitApi_noBranchRegex() {
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(gitUrl: "git@dummy.com:company/myproj.git", jenkinsUrl: "http://dummy.com")
 		assert jenkinsJobManager.gitApi
 	}
 
-	@Test public void testInitGitApi_withBranchRegex() {
+	@Test
+	public void testInitGitApi_withBranchRegex() {
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(gitUrl: "git@dummy.com:company/myproj.git", branchNameRegex: 'feature\\/.+|release\\/.+|master', jenkinsUrl: "http://dummy.com")
 		assert jenkinsJobManager.gitApi
 	}
 
-	@Test public void testGetTemplateJobs() {
+	@Test
+	public void testGetTemplateJobs() {
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "NeoDocs", templateJobPrefix: "NeoDocsTemplates", gitUrl: "git@dummy.com:company/myproj.git", jenkinsUrl: "http://dummy.com")
 
 		List<String> allJobNames = [
@@ -66,30 +84,40 @@ class JenkinsJobManagerTests extends GroovyTestCase {
 			new TemplateJob(jobName: "NeoDocsTemplates-deploy-feature", baseJobName: "deploy", templateBranchName: "feature"),
 			new TemplateJob(jobName: "NeoDocsTemplates-build-hotfix", baseJobName: "build", templateBranchName: "hotfix")
 		]
-		
+
 		assert templateJobs == jenkinsJobManager.findRequiredTemplateJobs(allJobNames)
 	}
 
-	@Test public void testSync() {
+	@Test
+	public void testSync() {
 
 		List<TemplateJob> templateJobs = [
 			new TemplateJob(jobName: "NeoDocsTemplates-build-feature", baseJobName: "build", templateBranchName: "feature"),
 			new TemplateJob(jobName: "NeoDocsTemplates-deploy-feature", baseJobName: "deploy", templateBranchName: "feature"),
 			new TemplateJob(jobName: "NeoDocsTemplates-build-hotfix", baseJobName: "build", templateBranchName: "hotfix")
 		]
-		
+
 		List<String> jobNames = [
-			"NeoDocs-build-feature-test1", // add missing deploy test1
-			"NeoDocs-deploy-feature-test2", // add missing build test2
-			"NeoDocs-deploy-feature-test3", // to delete
-			"NeoDocs-build-hotfix-awaria", // do nothing - already there
+			"NeoDocs-build-feature-test1",
+			// add missing deploy test1
+			"NeoDocs-deploy-feature-test2",
+			// add missing build test2
+			"NeoDocs-deploy-feature-test3",
+			// to delete
+			"NeoDocs-build-hotfix-awaria",
+			// do nothing - already there
 			"NeoDocs-build-release" // do nothing - no template avail
 		]
 
-		List<String> branchNames = ["feature-test1", "feature-test2", "master", "release-1.0.0", "hotfix-awaria"]
-		
+		List<String> branchNames = [
+			"feature-test1",
+			"feature-test2",
+			"master",
+			"release-1.0.0",
+			"hotfix-awaria"
+		]
+
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "NeoDocs", templateJobPrefix: "NeoDocsTemplates", gitUrl: "git@dummy.com:company/myproj.git", jenkinsUrl: "http://dummy.com")
 		jenkinsJobManager.syncJobs(branchNames ,jobNames, templateJobs)
 	}
-	
 }

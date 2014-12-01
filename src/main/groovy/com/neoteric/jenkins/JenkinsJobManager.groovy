@@ -1,20 +1,20 @@
-package com.entagen.jenkins
+package com.neoteric.jenkins
 
 import java.util.regex.Pattern
 
 class JenkinsJobManager {
 
-
-	//TODO 1 - hardcoded template branches, enable to use only one template for all (feature, release, hotfix?)
-
 	String templateJobPrefix
 	String jobPrefix
 	String gitUrl
-	String nestedView
-	String createJobInView
 	String jenkinsUrl
+	String createJobInView
 	String jenkinsUser
 	String jenkinsPassword
+
+	Boolean dryRun = false
+	Boolean noDelete = false
+	Boolean startOnCreate = false
 
 	String featureSuffix = "feature-"
 	String hotfixSuffix = "hotfix-"
@@ -24,14 +24,9 @@ class JenkinsJobManager {
 	String templateHotfixSuffix = "hotfix"
 	String templateReleaseSuffix = "release"
 
-	def branchSuffixMatch = [(templateFeatureSuffix):featureSuffix,
-		(templateHotfixSuffix): hotfixSuffix,
-		(templateReleaseSuffix): releaseSuffix
-	]
-
-	Boolean dryRun = false
-	Boolean noDelete = false
-	Boolean startOnCreate = false
+	def branchSuffixMatch = [(templateFeatureSuffix): featureSuffix,
+							 (templateHotfixSuffix) : hotfixSuffix,
+							 (templateReleaseSuffix): releaseSuffix]
 
 	JenkinsApi jenkinsApi
 	GitApi gitApi
@@ -53,7 +48,6 @@ class JenkinsJobManager {
 		println "-------------------------------------"
 		println "All job names:" + allJobNames
 
-		// ensure that there is at least one job matching the template pattern, collect the set of template jobs
 		List<TemplateJob> templateJobs = findRequiredTemplateJobs(allJobNames)
 		println "-------------------------------------"
 		println "Template Jobs:" + templateJobs

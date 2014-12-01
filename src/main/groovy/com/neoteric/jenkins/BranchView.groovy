@@ -1,4 +1,4 @@
-package com.entagen.jenkins
+package com.neoteric.jenkins
 
 class BranchView {
     String templateJobPrefix

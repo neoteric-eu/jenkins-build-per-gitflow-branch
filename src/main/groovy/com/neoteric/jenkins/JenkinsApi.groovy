@@ -1,4 +1,4 @@
-package com.entagen.jenkins
+package com.neoteric.jenkins
 
 import groovyx.net.http.ContentType
 import groovyx.net.http.HTTPBuilder
@@ -91,11 +91,14 @@ class JenkinsApi {
 	public String processConfig(String entryConfig, String branchName, String gitUrl) {
 		def root = new XmlParser().parseText(entryConfig)
 		// update branch name
-		def branches = root.scm.branches
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
 		
 		// update GIT url
 		root.scm.userRemoteConfigs."hudson.plugins.git.UserRemoteConfig".url[0].value = "$gitUrl"
+		
+		//update Sonar
+		root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
+		
 		
 		//remove template build variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)

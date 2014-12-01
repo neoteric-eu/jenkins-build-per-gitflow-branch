@@ -1,20 +1,30 @@
-package com.entagen.jenkins
+package com.neoteric.jenkins
 
+import org.junit.Before;
 import org.junit.Test
+import static org.assertj.core.api.Assertions.assertThat
 
-class GitApiTests extends GroovyTestCase {
+import com.neoteric.jenkins.GitApi;
 
-    @Test public void testEachResultLine_goodCommand() {
-        GitApi gitApi = new GitApi()
-
+class GitApiTests {
+	
+	final shouldFail = new GroovyTestCase().&shouldFail
+	GitApi gitApi
+	
+	@Before
+	void before() {
+		gitApi = new GitApi();
+	}
+	
+    @Test
+	public void shouldProcessGoodCommand() {
         gitApi.eachResultLine("echo foo bar baz") { String line ->
-            assert line == "foo bar baz"
+            assertThat(line).isEqualTo("foo bar baz")
         }
     }
 
-    @Test public void testEachResultLine_badCommand() {
-        GitApi gitApi = new GitApi()
-
+    @Test
+	public void shouldFailWhenProcessingBadCommand() {
         assert "Cannot run program \"mrmxyzptlk\": error=2, No such file or directory" == shouldFail {
             gitApi.eachResultLine("mrmxyzptlk") { String line ->
                 fail("Should not have gotten here, this should throw an error as the command shouldn't exist")
@@ -22,9 +32,8 @@ class GitApiTests extends GroovyTestCase {
         }
     }
 
-    @Test public void testBadCommandThrowsException() {
-        GitApi gitApi = new GitApi()
-
+    @Test
+	public void testBadCommandThrowsException() {
         assert "Error executing command: cat thisfiledoesntexist -> cat: thisfiledoesntexist: No such file or directory" == shouldFail {
             gitApi.eachResultLine("cat thisfiledoesntexist") { String line ->
                 fail("Should not have gotten here, this should throw an error, the command exists, but it doesn't run successfully")
@@ -32,7 +41,8 @@ class GitApiTests extends GroovyTestCase {
         }
     }
 
-    @Test public void testGetBranchNames() {
+    @Test
+	public void testGetBranchNames() {
         String mockResult = """
 10b42258f451ebf2640d3c18850e0c22eecdad4\trefs/heads/ted/feature_branch
 b9c209a2bf1c159168bf6bc2dfa9540da7e8c4a26\trefs/heads/master
@@ -41,7 +51,6 @@ garbage line that should be ignored
         """.trim()
 
         GitApi gitApi = new GitApiMockedResult(mockResult: mockResult)
-
         List<String> branchNames = gitApi.branchNames
 		
         assert ["master", "release_1.0rc1", "ted/feature_branch"] == branchNames.sort()
