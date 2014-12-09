@@ -11,6 +11,8 @@ dependencies {
     compile 'commons-cli:commons-cli:1.2' // should be part of groovy, but not available when running for some reason
 	compile 'org.jooq:joox:1.2.0'
     testCompile 'junit:junit:4.11'
+    testCompile 'org.assertj:assertj-core:1.7.0'
+	testCompile 'com.github.stefanbirkner:system-rules:1.7.0'
     compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
 }
 

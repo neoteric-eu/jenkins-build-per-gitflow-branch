@@ -1,72 +1,55 @@
 package com.neoteric.jenkins
 
 import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat
+import groovy.mock.interceptor.MockFor;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test
+import org.junit.contrib.java.lang.system.StandardOutputStreamLog
 
 import com.neoteric.jenkins.JenkinsJobManager;
 import com.neoteric.jenkins.TemplateJob;
 
 class JenkinsJobManagerTests {
 
-	JenkinsJobManager jenkinsJobManager
+	@Rule
+	public final StandardOutputStreamLog log = new StandardOutputStreamLog();
 	
-	@Before
-	void before() {
-		jenkinsJobManager = new JenkinsJobManager(jobPrefix: "myproj", jenkinsUrl: "http://dummy.com", gitUrl: "git@dummy.com:company/myproj.git")
-	}
-	
+	final shouldFail = new GroovyTestCase().&shouldFail
+
 	@Test
 	public void testFindTemplateJobs() {
-		
+		JenkinsJobManager jenkinsJobManager =
+				new JenkinsJobManager(templateJobPrefix: "template", jobPrefix: "myproj", jenkinsUrl: "http://dummy.com", gitUrl: "git@dummy.com:company/myproj.git")
+
 		List<String> allJobNames = [
 			"myproj-foo-master",
 			"otherproj-foo-master",
-			"myproj-foo-featurebranch"
+			"template-foo-feature"
 		]
 		List<TemplateJob> templateJobs = jenkinsJobManager.findRequiredTemplateJobs(allJobNames)
 		assert templateJobs.size() == 1
 		TemplateJob templateJob = templateJobs.first()
-		assert templateJob.jobName == "myproj-foo-master"
-		assert templateJob.baseJobName == "myproj-foo"
-		assert templateJob.templateBranchName == "master"
+		assert templateJob.jobName == "template-foo-feature"
+		assert templateJob.baseJobName == "foo"
+		assert templateJob.templateBranchName == "feature"
 	}
 
 
 	@Test
 	public void testFindTemplateJobs_noMatchingJobsThrowsException() {
-		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "myproj", templateBranchName: "master", jenkinsUrl: "http://dummy.com", gitUrl: "git@dummy.com:company/myproj.git")
+		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(templateJobPrefix: "template", jobPrefix: "myproj", jenkinsUrl: "http://dummy.com", gitUrl: "git@dummy.com:company/myproj.git")
 		List<String> allJobNames = [
 			"otherproj-foo-master",
 			"myproj-foo-featurebranch"
 		]
 		String result = shouldFail(AssertionError) { jenkinsJobManager.findRequiredTemplateJobs(allJobNames) }
 
-		assert result == "Unable to find any jobs matching template regex: ^(myproj-[^-]*)-(master)\$\nYou need at least one job to match the templateJobPrefix and templateBranchName suffix arguments. Expression: (templateJobs?.size() > 0)"
+		assertThat(result).contains("Unable to find any jobs matching template regex")
 	}
 
-
-	@Test
-	public void testTemplateJobSafeNames() {
-		TemplateJob templateJob = new TemplateJob(jobName: "myproj-foo-master", baseJobName: "myproj-foo", templateBranchName: "master")
-
-		assert "myproj-foo-myfeature" == templateJob.jobNameForBranch("myfeature")
-		assert "myproj-foo-ted_myfeature" == templateJob.jobNameForBranch("ted/myfeature")
-	}
-
-
-	@Test
-	public void testInitGitApi_noBranchRegex() {
-		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(gitUrl: "git@dummy.com:company/myproj.git", jenkinsUrl: "http://dummy.com")
-		assert jenkinsJobManager.gitApi
-	}
-
-	@Test
-	public void testInitGitApi_withBranchRegex() {
-		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(gitUrl: "git@dummy.com:company/myproj.git", branchNameRegex: 'feature\\/.+|release\\/.+|master', jenkinsUrl: "http://dummy.com")
-		assert jenkinsJobManager.gitApi
-	}
 
 	@Test
 	public void testGetTemplateJobs() {
@@ -116,8 +99,30 @@ class JenkinsJobManagerTests {
 			"release-1.0.0",
 			"hotfix-awaria"
 		]
-
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "NeoDocs", templateJobPrefix: "NeoDocsTemplates", gitUrl: "git@dummy.com:company/myproj.git", jenkinsUrl: "http://dummy.com")
+
+		jenkinsJobManager.jenkinsApi = new JenkinsApiMocked()
 		jenkinsJobManager.syncJobs(branchNames ,jobNames, templateJobs)
+
+		assertThat(log.getLog().substring(log.getLog().indexOf("Summary"))).containsSequence( 
+			"Creating", "NeoDocs-deploy-feature-test1 from NeoDocsTemplates-deploy-feature",
+						"NeoDocs-build-feature-test2 from NeoDocsTemplates-build-feature",
+			"Deleting", "NeoDocs-deploy-feature-test3")
+		}
+
+	class JenkinsApiMocked extends JenkinsApi {
+		
+		@Override
+		public void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl) {
+		}
+		
+		@Override
+		public void deleteJob(String jobName) {
+		}
+		
+		@Override
+		public void startJob(ConcreteJob job) {
+		}
 	}
+	
 }
