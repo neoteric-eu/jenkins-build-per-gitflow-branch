@@ -165,7 +165,7 @@ class JenkinsApiTests {
     <configVersion>2</configVersion>
     <userRemoteConfigs>
       <hudson.plugins.git.UserRemoteConfig>
-        <url>git@gitlab.neoteric.eu:developers/neob2b-neodocs.git</url>
+        <url>git@githost.com/repo.git</url>
         <credentialsId>469a31b3-b5e5-45e0-b9c6-9cc3ef61203e</credentialsId>
       </hudson.plugins.git.UserRemoteConfig>
     </userRemoteConfigs>
@@ -189,8 +189,8 @@ class JenkinsApiTests {
   <triggers/>
   <concurrentBuild>false</concurrentBuild>
   <rootModule>
-    <groupId>com.neoteric.b2b</groupId>
-    <artifactId>neodocs</artifactId>
+    <groupId>com.neoteric</groupId>
+    <artifactId>artifactId</artifactId>
   </rootModule>
   <goals>clean install</goals>
   <aggregatorStyleBuild>true</aggregatorStyleBuild>
@@ -261,7 +261,7 @@ static final String CONFIG_NO_SONAR = '''
     <configVersion>2</configVersion>
     <userRemoteConfigs>
       <hudson.plugins.git.UserRemoteConfig>
-        <url>git@gitlab.neoteric.eu:developers/neob2b-neodocs.git</url>
+        <url>git@githost.com/repo.git</url>
         <credentialsId>469a31b3-b5e5-45e0-b9c6-9cc3ef61203e</credentialsId>
       </hudson.plugins.git.UserRemoteConfig>
     </userRemoteConfigs>
@@ -285,8 +285,8 @@ static final String CONFIG_NO_SONAR = '''
   <triggers/>
   <concurrentBuild>false</concurrentBuild>
   <rootModule>
-    <groupId>com.neoteric.b2b</groupId>
-    <artifactId>neodocs</artifactId>
+    <groupId>com.neoteric</groupId>
+    <artifactId>artifactId</artifactId>
   </rootModule>
   <goals>clean install</goals>
   <aggregatorStyleBuild>true</aggregatorStyleBuild>
