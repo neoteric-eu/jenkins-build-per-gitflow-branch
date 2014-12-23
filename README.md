@@ -13,6 +13,20 @@ Requirements are the same for both script versions:
 - The best idea is to clone / fork this repository for your own usage (makes sure that nothing is going to happen with the script). However, you can still use ours if you like.
 
 ### Usage
+Usage is also very similiar to the original, but let me retrace the steps:
+##### 1. Create Jenkins synchronization job
+The whole idea is to have a single Jenkins job which executes periodically, checks Git repository and creates / removes Jenkins jobs for each of the Git Flow dynamic branch (other than master nad development).
+> Note: If no template for particular branch / job is available, branch will be ignored (job won't be created nor deleted).
+- Create new "*Freestyle project*" kind of Jenkins job.
+- Name it accordingly, ex. ProjectName-SyncJobs.
+- For Git URL provide this script location (or your forked / cloned one): *git@github.com:neoteric-eu/jenkins-build-per-gitflow-branch.git*
+- Set appropriate branch to build (ours is *origin/master*)
+- Make sure it's triggered periodically (ex. every 5 minutes: **H/5 \* \* \* \***)
+- Add a build step "*Invoke Gradle script*" and set it's *Tasks* field to **syncWithRepo**
+- Provide script parameters (explained below) in *Switches* box
+
+##### 2. Script parameters
+
 
 [Jenkins Build Per Branch]:http://entagen.github.io/jenkins-build-per-branch/
 [GitHub flow]:http://scottchacon.com/2011/08/31/github-flow.html
