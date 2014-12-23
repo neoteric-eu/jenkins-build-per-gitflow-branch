@@ -26,16 +26,33 @@ The whole idea is to have a single Jenkins job which executes periodically, chec
 - Add a build step "*Invoke Gradle script*" and set it's *Tasks* field to **syncWithRepo**
 - Provide script parameters (explained below) in *Switches* box
 
-##### 2. Script parameters (provided in Switches box)
-Firstly, let's cover standard parameters, which did not change.
-- `-DjenkinsUrl` URL of the Jenkins.You should be able to append api/json to the URL to get JSON feed.
-- `-DjenkinsUser` Jenkins HTTP basic authorization user name.
-- `-DjenkinsPasswrd` Jenkins HTTP basic authorization password.
-- `-DgitUrl` URL of the Git repository to make the synchronization against.
-- `-DdryRun` Pass this flag with any value and it won't make any changes to Jenkins (preview mode). It is recommended to use dry run until everything is set up correctly.
-
 
 > **Important note from Entagen site**: This job is potentially destructive as it will delete old feature branch jobs for feature branches that no longer exist. It's strongly recommended that you back up your jenkins jobs directory before running, just in case. Another good alternative would be to put your jobs directory under git version control. Ignore workspace and builds directories and just about everything can be added. Commit periodocally and if something bad happens, revert back to the last known good version.
+##### 2. Naming convention
+
+
+
+##### 3. Script parameters (provided in Switches box)
+- `-DjenkinsUrl` URL of the Jenkins.You should be able to append api/json to the URL to get JSON feed.
+- `-DjenkinsUser` Jenkins HTTP basic authorization user name. (optional)
+- `-DjenkinsPasswrd` Jenkins HTTP basic authorization password. (optional)
+- `-DgitUrl` URL of the Git repository to make the synchronization against.
+- `-DdryRun` Pass this flag with any value and it won't make any changes to Jenkins (preview mode). It is recommended to use dry run until everything is set up correctly. (optional)
+- `-DtemplateJobPrefix` Prefix name for template jobs
+- `-DjobPrefix` Prefix name for project jobs
+- `-DcreateJobInView` If you want the script to create the job in a view provide the view name here. It also support nested views, just serparate them with slash '/', ex. *view/nestedview*
+- `-DnoDelete` pass this flag with *true* value to avoid removing obsolete jobs (with no corresponding git branch) (optional)
+
+Sample parameters configuration:
+```
+-DjenkinsUrl=http://myjenkinshost.com:8080/
+-DjenkinsUser=username
+-DjenkinsPassword=password
+-DgitUrl=git@githost.com/project.git
+-DtemplateJobPrefix=SimpleJarTemplate
+-DjobPrefix=ProjectOne
+-DcreateJobInView=ProjectOne
+```
 
 
 [Jenkins Build Per Branch]:http://entagen.github.io/jenkins-build-per-branch/
