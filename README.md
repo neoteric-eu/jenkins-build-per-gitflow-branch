@@ -2,8 +2,8 @@
 This script will allow you to keep your Jenkins jobs in sync with your Git repository (following Git Flow branching model).
 
 ### Genesis
-This is a variation of solution we found. Hence, the credit for the idea and initial implementation goes to Entagen and theirs [Jenkins Build Per Branch]. They explained it nicely, so it's advisable to take a look there. As stated, Entagen's version would suit better for a [GitHub flow] convention. Our need is to have three different templates for each of the Git Flow branches: features, releases, hotfixes and to sync them all in one 'scanning session' (single Jenkins sync job execution). I found it impossible using the original solution.
-So, we reused the concept of this nice script, but replaced the synchronization logic with what suited us better.
+This is a variation of a solution we found. Hence, the credit for the idea and initial implementation goes to Entagen and theirs [Jenkins Build Per Branch]. They explained it nicely, so it's advisable to take a look to their page. As stated, Entagen's version would suit better for a [GitHub flow] convention. Our need is to have three different templates for each of the Git Flow branches: features, releases, hotfixes and to sync them all in one 'scanning session' (single Jenkins sync job execution). I found it impossible using the original solution.
+So, we reused the concept of Entagen's script, but replaced the synchronization logic with what suited us better.
 
 ### Installation
 Requirements are the same for both script versions:
