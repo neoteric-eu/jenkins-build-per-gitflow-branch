@@ -117,9 +117,6 @@ class JenkinsApi {
 			new Node(root, 'properties')
 		}
 		
-		//update docker repo
-		root.postBuilders."com.cloudbees.dockerpublish.DockerBuilder".repoName="$dockerRepository"
-		
 		
 		def writer = new StringWriter()
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
