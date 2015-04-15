@@ -113,7 +113,7 @@ class JenkinsJobManagerTests {
 	class JenkinsApiMocked extends JenkinsApi {
 		
 		@Override
-		public void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl) {
+		public void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl, String scriptCommand) {
 		}
 		
 		@Override

@@ -3,6 +3,8 @@ package com.neoteric.jenkins
 import groovyx.net.http.ContentType
 import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.RESTClient
+import org.apache.commons.lang.StringEscapeUtils
+
 import static groovyx.net.http.ContentType.*
 
 import org.apache.http.conn.HttpHostConnectException
@@ -55,10 +57,10 @@ class JenkinsApi {
 		response.data.text
 	}
 
-	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl) {
+	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl, String scriptCommand) {
 		String createJobInViewPath = resolveViewPath(createJobInView)
 		println "-----> createInView after" + createJobInView
-		String missingJobConfig = configForMissingJob(missingJob, gitUrl)
+		String missingJobConfig = configForMissingJob(missingJob, gitUrl, scriptCommand)
 		TemplateJob templateJob = missingJob.templateJob
 
 		//Copy job with jenkins copy job api, this will make sure jenkins plugins get the call to make a copy if needed (promoted builds plugin needs this)
@@ -82,13 +84,13 @@ class JenkinsApi {
 		elements.join();
 	}
 
-	String configForMissingJob(ConcreteJob missingJob, String gitUrl) {
+	String configForMissingJob(ConcreteJob missingJob, String gitUrl, String scriptCommand) {
 		TemplateJob templateJob = missingJob.templateJob
 		String config = getJobConfig(templateJob.jobName)
-		return processConfig(config, missingJob.branchName, gitUrl)
+		return processConfig(config, missingJob.branchName, gitUrl, scriptCommand)
 	}
 
-	public String processConfig(String entryConfig, String branchName, String gitUrl) {
+	public String processConfig(String entryConfig, String branchName, String gitUrl, String scriptCommand) {
 		def root = new XmlParser().parseText(entryConfig)
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
@@ -100,8 +102,15 @@ class JenkinsApi {
 		if (root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0] != null) {
 			root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
 		}
-		
-		
+
+		//update Publish over SSH exec
+		def publishers = root.postbuilders."jenkins.plugins.publish__over__ssh.BapSshBuilderPlugin".delegate.delegate.publishers."jenkins.plugins.publish__over__ssh.BapSshPublisher"
+		if (publishers != null) {
+			for (publisher in publishers) {
+				publisher.transfers[0]."jenkins.plugins.publish__over__ssh.BapSshTransfer"[0].execCommand[0].value = "$scriptCommand"
+			}
+		}
+
 		//remove template build variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)
 		if (startOnCreateParam) {
@@ -122,7 +131,7 @@ class JenkinsApi {
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
 		xmlPrinter.setPreserveWhitespace(true)
 		xmlPrinter.print(root)
-		return writer.toString()
+		return StringEscapeUtils.unescapeXml(writer.toString())
 	}
 	
 	void startJob(ConcreteJob job) {
