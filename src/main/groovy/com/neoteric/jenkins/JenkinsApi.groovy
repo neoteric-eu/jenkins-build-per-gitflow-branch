@@ -91,6 +91,11 @@ class JenkinsApi {
 	}
 
 	public String processConfig(String entryConfig, String branchName, String gitUrl, String scriptCommand) {
+
+		println("BranchName: $branchName")
+		println("gitUrl: $gitUrl")
+		println("scriptCommand: $scriptCommand")
+
 		def root = new XmlParser().parseText(entryConfig)
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
@@ -131,6 +136,10 @@ class JenkinsApi {
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
 		xmlPrinter.setPreserveWhitespace(true)
 		xmlPrinter.print(root)
+		println("=== OUTPUT ====")
+		println(writer.toString())
+		println("=== OUTPUT ESCAPED ====")
+		println(StringEscapeUtils.unescapeXml(writer.toString()))
 		return StringEscapeUtils.unescapeXml(writer.toString())
 	}
 	
