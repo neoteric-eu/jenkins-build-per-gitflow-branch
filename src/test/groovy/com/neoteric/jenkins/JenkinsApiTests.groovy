@@ -127,7 +127,7 @@ class JenkinsApiTests {
         JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 
         def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "nohup /opt/projects/jenkins-deployment/neo-tasks.sh > /opt/projects/jenkins-deployment/neo-tasks.log &");
-        assertThat(result).contains("<execCommand>nohup /opt/projects/jenkins-deployment/neo-tasks.sh > /opt/projects/jenkins-deployment/neo-tasks.log &amp;</execCommand>")
+        assertThat(result).contains("<execCommand>nohup /opt/projects/jenkins-deployment/neo-tasks.sh &gt; /opt/projects/jenkins-deployment/neo-tasks.log &amp;</execCommand>")
     }
 
     @Test
