@@ -17,7 +17,7 @@ class SonarApi {
         this.sonarServerUrl = sonarServerUrl
         this.restClient = new RESTClient(sonarServerUrl)
 
-        println "Sonar API - registered restClient with " sonarServerUrl
+        println ("Sonar API - registered restClient with " + sonarServerUrl)
     }
 
     protected Integer delete(String entryConfig) {
