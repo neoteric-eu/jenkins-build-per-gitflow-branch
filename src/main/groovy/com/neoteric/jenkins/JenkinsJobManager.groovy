@@ -136,13 +136,15 @@ class JenkinsJobManager {
         }
 
         if (!noDelete && jobsToDelete) {
+
+			println "Ivoking sonar to delete deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
+			jobsToDelete.each { String jobName ->
+				sonarApi.delete(jenkinsApi.getJobConfig(jobName))
+			}
+
             println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
             jobsToDelete.each { String jobName ->
                 jenkinsApi.deleteJob(jobName)
-            }
-            println "Ivoking sonar to delete deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
-            jobsToDelete.each { String jobName ->
-                sonarApi.delete(jenkinsApi.getJobConfig(jobName))
             }
 
         }
