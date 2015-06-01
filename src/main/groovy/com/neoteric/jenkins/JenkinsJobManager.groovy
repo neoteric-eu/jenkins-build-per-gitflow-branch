@@ -174,8 +174,15 @@ class JenkinsJobManager {
     }
 
     SonarApi initSonarApi() {
+
+		println("Sonar API - initializing")
+
         if (!sonarApi) {
+
             this.sonarApi = new SonarApi(sonarServerPassword: sonarPassword, sonarServerUser: sonarUser)
+
+			println "Sonar API - initialized"
+
             assert sonarUrl != null
             sonarApi.setSonarServerUrl(sonarUrl)
         }

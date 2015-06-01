@@ -16,6 +16,8 @@ class SonarApi {
         if (!sonarServerUrl.endsWith("/")) sonarServerUrl += "/"
         this.sonarServerUrl = sonarServerUrl
         this.restClient = new RESTClient(sonarServerUrl)
+
+        println "Sonar API - registered restClient with " sonarServerUrl
     }
 
     protected Integer delete(String entryConfig) {
@@ -29,7 +31,7 @@ class SonarApi {
         StringBuilder sonarProject = new StringBuilder("/api/projects/")
         sonarProject.append(groupId).append(":").append(artifactId).append(":").append(branchName);
 
-        println "Sonar path to delete: " + sonarProject
+        println "Sonar API - path to delete: " + sonarProject
 
         restClient.auth.basic sonarServerUser, sonarServerPassword
 
