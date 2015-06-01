@@ -146,6 +146,9 @@ class JenkinsApiTests {
         mockRESTClient.use { closure() }
     }
 
+
+
+
     static final String CONFIG = '''
 <maven2-moduleset plugin="maven-plugin@2.7.1">
   <actions/>
