@@ -1,14 +1,14 @@
 package com.neoteric.jenkins
 
 import groovyx.net.http.RESTClient
+import org.apache.http.HttpRequest
 import org.apache.http.HttpRequestInterceptor
 import org.apache.http.conn.HttpHostConnectException
+import org.apache.http.protocol.HttpContext
 
 class SonarApi {
 
     String sonarServerUrl
-    String sonarServerUser
-    String sonarServerPassword
     RESTClient restClient
     HttpRequestInterceptor requestInterceptor
 
@@ -18,6 +18,19 @@ class SonarApi {
         this.restClient = new RESTClient(sonarServerUrl)
 
         println ("Sonar API - registered restClient with " + sonarServerUrl)
+    }
+
+    public void addBasicAuth(String sonarServerUser, String sonarServerPassword) {
+        println "Sonar API - use basic authentication"
+
+        this.requestInterceptor = new HttpRequestInterceptor() {
+            void process(HttpRequest httpRequest, HttpContext httpContext) {
+                def auth = sonarServerUser + ':' + sonarServerPassword
+                httpRequest.addHeader('Authorization', 'Basic ' + auth.bytes.encodeBase64().toString())
+            }
+        }
+
+        this.restClient.client.addRequestInterceptor(this.requestInterceptor)
     }
 
     protected Integer delete(String entryConfig) {
@@ -33,8 +46,6 @@ class SonarApi {
         sonarProject.append(groupId).append(":").append(artifactId).append(":").append(branchName);
 
         println "Sonar API - path to delete: " + sonarProject
-
-        restClient.auth.basic sonarServerUser, sonarServerPassword
 
         try {
             def response = restClient.delete(path: sonarProject)
