@@ -3,6 +3,7 @@ package com.neoteric.jenkins
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpRequest
 import org.apache.http.HttpRequestInterceptor
+import org.apache.http.client.HttpResponseException
 import org.apache.http.conn.HttpHostConnectException
 import org.apache.http.protocol.HttpContext
 
@@ -49,9 +50,9 @@ class SonarApi {
 
         try {
             restClient.delete(path: sonarProject)
-        } catch (HttpHostConnectException ex) {
-            println "Unable to connect to sonar host: $sonarServerUrl"
-            throw ex;
+        } catch (HttpResponseException e) {
+            println "Sonar API - Unable to connect to sonar host: $sonarServerUrl"
+            println "Sonar API - $e.statusCode"
         }
 
     }
