@@ -33,7 +33,7 @@ class SonarApi {
         this.restClient.client.addRequestInterceptor(this.requestInterceptor)
     }
 
-    protected Integer delete(String entryConfig) {
+    protected void delete(String entryConfig) {
 
         def root = new XmlParser().parseText(entryConfig)
         def branchName = root.publishers."hudson.plugins.sonar.SonarPublisher".branch.text()
@@ -48,13 +48,11 @@ class SonarApi {
         println "Sonar API - path to delete: " + sonarProject
 
         try {
-            def response = restClient.delete(path: sonarProject)
+            restClient.delete(path: sonarProject)
         } catch (HttpHostConnectException ex) {
             println "Unable to connect to sonar host: $sonarServerUrl"
             throw ex;
         }
 
-        assert response.status < 400
-        return response.status
     }
 }

@@ -1,7 +1,5 @@
 package com.neoteric.jenkins
 
-import java.util.regex.Pattern
-
 class JenkinsJobManager {
 
     String templateJobPrefix
@@ -42,7 +40,10 @@ class JenkinsJobManager {
         }
         initJenkinsApi()
         initGitApi()
-        initSonarApi()
+
+        if (sonarUrl && sonarUser) {
+            initSonarApi()
+        }
     }
 
     void syncWithRepo() {
@@ -137,10 +138,13 @@ class JenkinsJobManager {
 
         if (!noDelete && jobsToDelete) {
 
-			println "Ivoking sonar to delete deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
-			jobsToDelete.each { String jobName ->
-				sonarApi.delete(jenkinsApi.getJobConfig(jobName))
-			}
+            if (sonarApi) {
+                println "Ivoking sonar to delete deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
+
+                jobsToDelete.each { String jobName ->
+                    sonarApi.delete(jenkinsApi.getJobConfig(jobName))
+                }
+            }
 
             println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
             jobsToDelete.each { String jobName ->
@@ -177,13 +181,13 @@ class JenkinsJobManager {
 
     SonarApi initSonarApi() {
 
-		println("Sonar API - initializing")
+        println("Sonar API - initializing")
 
         if (!sonarApi) {
 
             this.sonarApi = new SonarApi()
 
-			println "Sonar API - initialized"
+            println "Sonar API - initialized"
 
             assert sonarUrl != null
             sonarApi.setSonarServerUrl(sonarUrl)
