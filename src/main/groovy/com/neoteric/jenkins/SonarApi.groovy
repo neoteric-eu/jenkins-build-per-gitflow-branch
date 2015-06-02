@@ -22,6 +22,7 @@ class SonarApi {
 
     protected Integer delete(String entryConfig) {
 
+        def root = new XmlParser().parseText(entryConfig)
         def branchName = root.publishers."hudson.plugins.sonar.SonarPublisher".branch.text()
 
         String groupId = root.rootModule.groupId.text()
