@@ -139,7 +139,7 @@ class JenkinsJobManager {
         if (!noDelete && jobsToDelete) {
 
             if (sonarApi) {
-                println "Ivoking sonar to delete deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
+                println "Invoking sonar to delete deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
 
                 jobsToDelete.each { String jobName ->
                     sonarApi.delete(jenkinsApi.getJobConfig(jobName))
@@ -185,16 +185,18 @@ class JenkinsJobManager {
 
         if (!sonarApi) {
 
-            this.sonarApi = new SonarApi()
+            if (dryRun) {
+                println "DRY RUN! Not executing any delete command to Sonar!"
+                this.sonarApi = new SonarApiReadOnly()
+            }else {
+                this.sonarApi = new SonarApi()
+            }
+                println "Sonar API - initialized"
 
-            println "Sonar API - initialized"
-
-            assert sonarUrl != null
-            sonarApi.setSonarServerUrl(sonarUrl)
-            if (sonarUser || sonarPassword) this.sonarApi.addBasicAuth(sonarUser, sonarPassword)
+                sonarApi.setSonarServerUrl(sonarUrl)
+                this.sonarApi.addBasicAuth(sonarUser, sonarPassword)
+            }
+            return this.sonarApi
         }
 
-        return this.sonarApi
     }
-
-}

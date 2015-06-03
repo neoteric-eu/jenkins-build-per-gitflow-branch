@@ -51,8 +51,7 @@ class SonarApi {
         try {
             restClient.delete(path: sonarProject)
         } catch (HttpResponseException e) {
-            println "Sonar API - Unable to connect to sonar host: $sonarServerUrl"
-            println "Sonar API - $e.statusCode"
+            println "Sonar API - Error: $e.statusCode"
         }
 
     }
