@@ -6,7 +6,7 @@ class SonarApiReadOnly extends SonarApi{
     @Override
     protected void delete(String entryConfig) {
 
-        Println "Sonar API - warning - DRY RUN - no changes will be applied to Sonar projects"
+        println "Sonar API - warning - DRY RUN - no changes will be applied to Sonar projects"
 
         def root = new XmlParser().parseText(entryConfig)
         def branchName = root.publishers."hudson.plugins.sonar.SonarPublisher".branch.text()
@@ -19,6 +19,6 @@ class SonarApiReadOnly extends SonarApi{
         sonarProject.append(groupId).append(":").append(artifactId).append(":").append(branchName);
 
         println "Sonar API - path to delete: " + sonarProject
-        Println "Sonar API - warning - DRY RUN - skipped delete"
+        println "Sonar API - warning - DRY RUN - skipped delete"
     }
 }
