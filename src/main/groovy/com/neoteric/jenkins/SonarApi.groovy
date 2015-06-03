@@ -51,7 +51,7 @@ class SonarApi {
         try {
             restClient.delete(path: sonarProject)
         } catch (HttpResponseException e) {
-            println "Sonar API - Error: $e.statusCode"
+            println "Sonar API - Error: $e.statusCode : $e.message"
         }
 
     }
