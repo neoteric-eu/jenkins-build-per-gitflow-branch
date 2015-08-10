@@ -95,28 +95,31 @@ class JenkinsApiTests {
 	@Test
 	public void shouldChangeConfigBranchName() {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl");
+		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<name>*/release-1.0.0</name>")
+                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
 	}
 
 	@Test
 	public void shouldChangeGitUrl() {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl");
+		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<url>newGitUrl</url>")
-	}
+                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
+    }
 	
 	@Test
 	public void shouldChangeSonarBranchName() {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl");
+		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<branch>release-1.0.0</branch>")
+                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
 	}
 	
 	@Test
 	public void shouldNotThrowExceptionWhenNoSonarConfig() {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG_NO_SONAR, "release-1.0.0", "newGitUrl");
+		def result = api.processConfig(CONFIG_NO_SONAR, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 	}
 	
 	@Test
@@ -219,6 +222,15 @@ class JenkinsApiTests {
       <globalSettings class="jenkins.mvn.DefaultGlobalSettingsProvider"/>
       <usePrivateRepository>false</usePrivateRepository>
     </hudson.plugins.sonar.SonarPublisher>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>myproj-deploy-release, some-other-job</childProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
   </publishers>
   <buildWrappers/>
   <prebuilders/>
@@ -230,7 +242,11 @@ class JenkinsApiTests {
     <completeBuild>true</completeBuild>
   </runPostStepsIfResult>
 </maven2-moduleset>'''
-	
+
+    static final Map<String, List<ConcreteJob>> JOBS_FOR_BRANCH = [ "release-1.0.0" : [
+            new ConcreteJob(templateJob: new TemplateJob(jobName: "myproj-deploy-release"),
+                    jobName: "job-deploy-release-1.0.0")
+            ]]
 static final String CONFIG_NO_SONAR = '''
 <maven2-moduleset plugin="maven-plugin@2.7.1">
   <actions/>

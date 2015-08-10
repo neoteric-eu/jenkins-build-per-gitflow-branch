@@ -85,6 +85,7 @@ class JenkinsJobManager {
 
 		List<ConcreteJob> missingJobs = [];
 		List<String> jobsToDelete = [];
+        Map<String,List<ConcreteJob>> expectedJobsPerBranch = [:];
 
 		templateJobsByBranch.keySet().each { templateBranchToProcess ->
 			println "-> Checking $templateBranchToProcess branches"
@@ -95,15 +96,16 @@ class JenkinsJobManager {
 			println "---> Founded corresponding branches: $branchesWithCorrespondingTemplate"
 			branchesWithCorrespondingTemplate.each { branchToProcess ->
 				println "-----> Processing branch: $branchToProcess"
-				List<ConcreteJob> expectedJobsPerBranch = templateJobsByBranch[templateBranchToProcess].collect { TemplateJob templateJob ->
+				List<ConcreteJob> expectedJobs = templateJobsByBranch[templateBranchToProcess].collect { TemplateJob templateJob ->
 					templateJob.concreteJobForBranch(jobPrefix, branchToProcess)
 				}
+                expectedJobsPerBranch.put(branchToProcess, expectedJobs)
 				println "-------> Expected jobs:"
-				expectedJobsPerBranch.each { println "           $it" }
+				expectedJobs.each { println "           $it" }
 				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess) }
 				println "-------> Job Names per branch:"
 				jobNamesPerBranch.each { println "           $it" }
-				List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll { expectedJob ->
+				List<ConcreteJob> missingJobsPerBranch = expectedJobs.findAll { expectedJob ->
 					!jobNamesPerBranch.any {it.contains(expectedJob.jobName) }
 				}
 				println "-------> Missing jobs:"
@@ -124,7 +126,7 @@ class JenkinsJobManager {
 		if (missingJobs) {
 			for(ConcreteJob missingJob in missingJobs) {
 				println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
-				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView, gitUrl)
+				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView, gitUrl, expectedJobsPerBranch)
 				jenkinsApi.startJob(missingJob)
 			}
 		}

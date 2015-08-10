@@ -55,10 +55,10 @@ class JenkinsApi {
 		response.data.text
 	}
 
-	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl) {
+	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl, Map<String,List<ConcreteJob>> jobsForBranch) {
 		String createJobInViewPath = resolveViewPath(createJobInView)
 		println "-----> createInView after" + createJobInView
-		String missingJobConfig = configForMissingJob(missingJob, gitUrl)
+		String missingJobConfig = configForMissingJob(missingJob, gitUrl, jobsForBranch)
 		TemplateJob templateJob = missingJob.templateJob
 
 		//Copy job with jenkins copy job api, this will make sure jenkins plugins get the call to make a copy if needed (promoted builds plugin needs this)
@@ -82,13 +82,13 @@ class JenkinsApi {
 		elements.join();
 	}
 
-	String configForMissingJob(ConcreteJob missingJob, String gitUrl) {
+	String configForMissingJob(ConcreteJob missingJob, String gitUrl, Map<String,List<ConcreteJob>> jobsForBranch) {
 		TemplateJob templateJob = missingJob.templateJob
 		String config = getJobConfig(templateJob.jobName)
-		return processConfig(config, missingJob.branchName, gitUrl)
+		return processConfig(config, missingJob.branchName, gitUrl, jobsForBranch)
 	}
 
-	public String processConfig(String entryConfig, String branchName, String gitUrl) {
+	public String processConfig(String entryConfig, String branchName, String gitUrl, Map<String,List<ConcreteJob>> jobsForBranch) {
 		def root = new XmlParser().parseText(entryConfig)
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
@@ -100,7 +100,14 @@ class JenkinsApi {
 		if (root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0] != null) {
 			root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
 		}
-		
+
+        if (root.publishers."hudson.tasks.BuildTrigger".childProjects[0] != null) {
+            def childProjects = root.publishers."hudson.tasks.BuildTrigger".childProjects.text()
+            jobsForBranch[branchName].each {ConcreteJob job ->
+                childProjects = childProjects.replace(job.templateJob.jobName, job.jobName)
+            }
+            root.publishers."hudson.tasks.BuildTrigger".childProjects[0].value = childProjects
+        }
 		
 		//remove template build variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)
