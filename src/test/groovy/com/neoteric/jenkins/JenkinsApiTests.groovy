@@ -97,6 +97,7 @@ class JenkinsApiTests {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<name>*/release-1.0.0</name>")
+                .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
 	}
 
@@ -105,6 +106,7 @@ class JenkinsApiTests {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<url>newGitUrl</url>")
+                .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
     }
 	
@@ -113,6 +115,7 @@ class JenkinsApiTests {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<branch>release-1.0.0</branch>")
+                .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
 	}
 	
@@ -233,8 +236,16 @@ class JenkinsApiTests {
     </hudson.tasks.BuildTrigger>
   </publishers>
   <buildWrappers/>
-  <prebuilders/>
-  <postbuilders/>
+  <prebuilders>
+    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.33">
+      <project>myproj-build-release</project>
+      <filter></filter>
+      <target></target>
+      <excludes></excludes>
+      <selector class="hudson.plugins.copyartifact.StatusBuildSelector"/>
+      <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
+    </hudson.plugins.copyartifact.CopyArtifact>
+  </prebuilders>  <postbuilders/>
   <runPostStepsIfResult>
     <name>FAILURE</name>
     <ordinal>2</ordinal>
@@ -243,10 +254,12 @@ class JenkinsApiTests {
   </runPostStepsIfResult>
 </maven2-moduleset>'''
 
-    static final Map<String, List<ConcreteJob>> JOBS_FOR_BRANCH = [ "release-1.0.0" : [
+    static final List<ConcreteJob> JOBS_FOR_BRANCH =  [
+            new ConcreteJob(templateJob: new TemplateJob(jobName: "myproj-build-release"),
+                    jobName: "job-build-release-1.0.0"),
             new ConcreteJob(templateJob: new TemplateJob(jobName: "myproj-deploy-release"),
                     jobName: "job-deploy-release-1.0.0")
-            ]]
+            ]
 static final String CONFIG_NO_SONAR = '''
 <maven2-moduleset plugin="maven-plugin@2.7.1">
   <actions/>

@@ -55,7 +55,7 @@ class JenkinsApi {
 		response.data.text
 	}
 
-	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl, Map<String,List<ConcreteJob>> jobsForBranch) {
+	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl, List<ConcreteJob> jobsForBranch) {
 		String createJobInViewPath = resolveViewPath(createJobInView)
 		println "-----> createInView after" + createJobInView
 		String missingJobConfig = configForMissingJob(missingJob, gitUrl, jobsForBranch)
@@ -82,13 +82,13 @@ class JenkinsApi {
 		elements.join();
 	}
 
-	String configForMissingJob(ConcreteJob missingJob, String gitUrl, Map<String,List<ConcreteJob>> jobsForBranch) {
+	String configForMissingJob(ConcreteJob missingJob, String gitUrl, List<ConcreteJob> jobsForBranch) {
 		TemplateJob templateJob = missingJob.templateJob
 		String config = getJobConfig(templateJob.jobName)
 		return processConfig(config, missingJob.branchName, gitUrl, jobsForBranch)
 	}
 
-	public String processConfig(String entryConfig, String branchName, String gitUrl, Map<String,List<ConcreteJob>> jobsForBranch) {
+	public String processConfig(String entryConfig, String branchName, String gitUrl, List<ConcreteJob> jobsForBranch) {
 		def root = new XmlParser().parseText(entryConfig)
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
@@ -101,14 +101,10 @@ class JenkinsApi {
 			root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
 		}
 
-        if (root.publishers."hudson.tasks.BuildTrigger".childProjects[0] != null) {
-            def childProjects = root.publishers."hudson.tasks.BuildTrigger".childProjects.text()
-            jobsForBranch[branchName].each {ConcreteJob job ->
-                childProjects = childProjects.replace(job.templateJob.jobName, job.jobName)
-            }
-            root.publishers."hudson.tasks.BuildTrigger".childProjects[0].value = childProjects
-        }
-		
+        // update project relationships
+        replaceJobName(jobsForBranch, root.prebuilders."hudson.plugins.copyartifact.CopyArtifact".project)
+        replaceJobName(jobsForBranch, root.publishers."hudson.tasks.BuildTrigger".childProjects)
+
 		//remove template build variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)
 		if (startOnCreateParam) {
@@ -131,7 +127,7 @@ class JenkinsApi {
 		xmlPrinter.print(root)
 		return writer.toString()
 	}
-	
+
 	void startJob(ConcreteJob job) {
 		String templateConfig = getJobConfig(job.templateJob.jobName)
 		if (shouldStartJob(templateConfig)) {
@@ -245,4 +241,13 @@ class JenkinsApi {
 		return status
 	}
 
+    protected static void replaceJobName(List<ConcreteJob> jobs, NodeList nodes) {
+        nodes.each {Node node ->
+            String text = node.text();
+            jobs.each { ConcreteJob job ->
+                text = text.replace(job.templateJob.jobName, job.jobName)
+            }
+            node.value = text
+        }
+    }
 }
