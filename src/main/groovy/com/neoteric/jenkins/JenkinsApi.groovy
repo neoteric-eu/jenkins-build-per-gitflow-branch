@@ -16,6 +16,7 @@ class JenkinsApi {
 	
 	
 	final String SHOULD_START_PARAM_NAME = "startOnCreate"
+	final String SHOULD_ENABLE_ON_CREATE = "enableOnCreate"
 	String jenkinsServerUrl
 	RESTClient restClient
 	HttpRequestInterceptor requestInterceptor
@@ -105,17 +106,24 @@ class JenkinsApi {
         replaceJobName(jobsForBranch, root.prebuilders."hudson.plugins.copyartifact.CopyArtifact".project)
         replaceJobName(jobsForBranch, root.publishers."hudson.tasks.BuildTrigger".childProjects)
 
-		//remove template build variable
+		//remove template build / enable variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)
 		if (startOnCreateParam) {
 			startOnCreateParam.parent().remove(startOnCreateParam)
+		}
+		Node enableOnCreateParam = findEnableOnCreateParameter(root)
+		if (enableOnCreateParam) {
+			if (enableOnCreateParam.defaultValue[0]?.text().toBoolean()) {
+				root.disabled[0].value = "false"
+			}
+			enableOnCreateParam.parent().remove(enableOnCreateParam)
 		}
 		
 		//check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
 		def propertiesNode = root.properties
 		def parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
 		
-		if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
+		if(parameterDefinitionsProperty != null && !parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
 			root.remove(propertiesNode)
 			new Node(root, 'properties')
 		}
@@ -144,13 +152,20 @@ class JenkinsApi {
 		}
 		return startOnCreateParam.defaultValue[0]?.text().toBoolean()
 	}
-	
+
 	Node findStartOnCreateParameter(Node root) {
-		return root.properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions."hudson.model.BooleanParameterDefinition".find {
-			it.name[0].text() == SHOULD_START_PARAM_NAME
-		}
+		return findParameter(root, SHOULD_START_PARAM_NAME)
 	}
 
+	Node findEnableOnCreateParameter(Node root) {
+		return findParameter(root, SHOULD_ENABLE_ON_CREATE)
+	}
+
+	static Node findParameter(Node root, String parameter) {
+		return root.properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions."hudson.model.BooleanParameterDefinition".find {
+			it.name[0].text() == parameter
+		}
+	}
 	void deleteJob(String jobName) {
 		println "deleting job $jobName"
 		post("job/${jobName}/doDelete")

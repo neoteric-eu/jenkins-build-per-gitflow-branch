@@ -97,6 +97,7 @@ class JenkinsApiTests {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<name>*/release-1.0.0</name>")
+                .contains("<disabled>false</disabled>")
                 .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
 	}
@@ -106,6 +107,7 @@ class JenkinsApiTests {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<url>newGitUrl</url>")
+                .contains("<disabled>false</disabled>")
                 .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
     }
@@ -115,6 +117,7 @@ class JenkinsApiTests {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<branch>release-1.0.0</branch>")
+                .contains("<disabled>false</disabled>")
                 .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
 	}
@@ -123,7 +126,9 @@ class JenkinsApiTests {
 	public void shouldNotThrowExceptionWhenNoSonarConfig() {
 		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 		def result = api.processConfig(CONFIG_NO_SONAR, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
-	}
+        assertThat(result).contains("<disabled>true</disabled>")
+
+    }
 	
 	@Test
 	public void testShouldStartJob() {
@@ -151,6 +156,11 @@ class JenkinsApiTests {
       <parameterDefinitions>
         <hudson.model.BooleanParameterDefinition>
           <name>startOnCreate</name>
+          <description></description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>enableOnCreate</name>
           <description></description>
           <defaultValue>true</defaultValue>
         </hudson.model.BooleanParameterDefinition>
@@ -189,7 +199,7 @@ class JenkinsApiTests {
     <extensions/>
   </scm>
   <canRoam>true</canRoam>
-  <disabled>false</disabled>
+  <disabled>true</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers/>
@@ -308,7 +318,7 @@ static final String CONFIG_NO_SONAR = '''
     <extensions/>
   </scm>
   <canRoam>true</canRoam>
-  <disabled>false</disabled>
+  <disabled>true</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers/>

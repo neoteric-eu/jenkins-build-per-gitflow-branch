@@ -71,6 +71,7 @@ The idea of this script is to be able to handle separate template version per Gi
 
 Notes on configuring your template:
 - If you want to start your job immediately after it's created, mark the template as parametrized build and add a Boolean parameter named **startOnCreate** and set it's default value to true (tick in the checkbox)
+- If you want to enable your job after it's created (maybe you have disabled it because it's scheduled), mark the template as parametrized build and add a Boolean parameter named **enableOnCreate** and set it's default value to true (tick in the checkbox)
 - Git repository URL is going to be replaced by the script (with the project Git URL set in sync job parameters)
 - Branch to build is going to be determined and set by the script
 - If you use Sonar and want to have Sonar builds separated for each branch type, just add Sonar capability to your template and the Sonar branch option will be determined and set by the script
