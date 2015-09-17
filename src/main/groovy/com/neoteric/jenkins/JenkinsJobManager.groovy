@@ -104,11 +104,11 @@ class JenkinsJobManager {
 				}
 				println "-------> Expected jobs:"
 				expectedJobsPerBranch.each { println "           $it" }
-				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(templateJob.jobNameForBranch(branchToProcess)) }
+				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(jobNameForBranch(branchToProcess,jobPrefix)) }
 				println "-------> Job Names per branch:"
 				jobNamesPerBranch.each { println "           $it" }
 				List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll { expectedJob ->
-					!jobNamesPerBranch.any {it.contains(expectedJob.jobName) }
+					!jobNamesPerBranch.any {it.contains(expectedJob.jobNameForBranch()) }
 				}
 				println "-------> Missing jobs:"
 				missingJobsPerBranch.each { println "           $it" }
@@ -164,5 +164,11 @@ class JenkinsJobManager {
 		}
 
 		return this.gitApi
+	}
+
+	String jobNameForBranch(String branchName, String baseJobName) {
+			// git branches often have a forward slash in them, but they make jenkins cranky, turn it into an underscore
+			String safeBranchName = branchName.replaceAll('/', '_')
+			return "$baseJobName-$safeBranchName"
 	}
 }
