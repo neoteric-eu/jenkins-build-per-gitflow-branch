@@ -104,7 +104,7 @@ class JenkinsJobManager {
 				}
 				println "-------> Expected jobs:"
 				expectedJobsPerBranch.each { println "           $it" }
-				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess) }
+				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(templateJob.jobNameForBranch(branchToProcess)) }
 				println "-------> Job Names per branch:"
 				jobNamesPerBranch.each { println "           $it" }
 				List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll { expectedJob ->
@@ -132,7 +132,7 @@ class JenkinsJobManager {
 				jenkinsApi.startJob(missingJob)
 			}
 		}
-		
+
 		if (!noDelete && jobsToDelete) {
 			println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
 			jobsToDelete.each { String jobName ->
@@ -140,7 +140,7 @@ class JenkinsJobManager {
 			}
 		}
 	}
-	
+
 	JenkinsApi initJenkinsApi() {
 		if (!jenkinsApi) {
 			assert jenkinsUrl != null
