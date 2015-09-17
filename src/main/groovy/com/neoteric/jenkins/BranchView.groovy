@@ -9,6 +9,7 @@ class BranchView {
     }
 
     public String getSafeBranchName() {
+        println "---->geting the safe branch name -------->"
         return branchName.replaceAll('/', '_')
     }
 

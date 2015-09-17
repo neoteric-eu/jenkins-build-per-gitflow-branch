@@ -42,7 +42,7 @@ class JenkinsApi {
 	}
 
 	List<String> getJobNames(String prefix = null) {
-		println "getting project names from " + jenkinsServerUrl + "api/json"
+
 		def response = get(path: 'api/json')
 		def jobNames = response.data.jobs.name
 		if (prefix) return jobNames.findAll { it.startsWith(prefix) }
@@ -50,14 +50,16 @@ class JenkinsApi {
 	}
 
 	String getJobConfig(String jobName) {
+
 		def response = get(path: "job/${jobName}/config.xml", contentType: TEXT,
 		headers: [Accept: 'application/xml'])
+
 		response.data.text
 	}
 
 	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl) {
 		String createJobInViewPath = resolveViewPath(createJobInView)
-		println "-----> createInView after" + createJobInView
+		println "-----> createInView after: " + createJobInView
 		String missingJobConfig = configForMissingJob(missingJob, gitUrl)
 		TemplateJob templateJob = missingJob.templateJob
 
@@ -83,19 +85,23 @@ class JenkinsApi {
 	}
 
 	String configForMissingJob(ConcreteJob missingJob, String gitUrl) {
+ 
 		TemplateJob templateJob = missingJob.templateJob
 		String config = getJobConfig(templateJob.jobName)
+
 		return processConfig(config, missingJob.branchName, gitUrl)
 	}
 
 	public String processConfig(String entryConfig, String branchName, String gitUrl) {
+
 		def root = new XmlParser().parseText(entryConfig)
+
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
-		
+
 		// update GIT url
 		root.scm.userRemoteConfigs."hudson.plugins.git.UserRemoteConfig".url[0].value = "$gitUrl"
-		
+
 		//update Sonar
 		if (root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0] != null) {
 			root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
@@ -110,13 +116,17 @@ class JenkinsApi {
 		
 		//check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
 		def propertiesNode = root.properties
-		def parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
+		def parameterDefinitionsProperty
+		//the neoteric people hard coded property names and didn't do defensive coding. This causes an NPE. tisk tisk!!
+		if(propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0] !=null){
+			
+			parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
 		
-		if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
-			root.remove(propertiesNode)
-			new Node(root, 'properties')
+			if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
+				root.remove(propertiesNode)
+				new Node(root, 'properties')
+			}
 		}
-		
 		
 		def writer = new StringWriter()
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))

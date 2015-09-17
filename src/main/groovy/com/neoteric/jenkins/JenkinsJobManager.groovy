@@ -16,15 +16,18 @@ class JenkinsJobManager {
 	Boolean noDelete = false
 	Boolean startOnCreate = false
 
-	String featureSuffix = "feature-"
+	String developmentSuffix = "development-"
+	String featureSuffix = "feature/"
 	String hotfixSuffix = "hotfix-"
 	String releaseSuffix = "release-"
 
+	String templateDevelopmentSuffix = "development"
 	String templateFeatureSuffix = "feature"
 	String templateHotfixSuffix = "hotfix"
 	String templateReleaseSuffix = "release"
 
-	def branchSuffixMatch = [(templateFeatureSuffix): featureSuffix,
+	def branchSuffixMatch = [(templateDevelopmentSuffix) : developmentSuffix,
+							(templateFeatureSuffix) : featureSuffix,
 							 (templateHotfixSuffix) : hotfixSuffix,
 							 (templateReleaseSuffix): releaseSuffix]
 
@@ -64,7 +67,7 @@ class JenkinsJobManager {
 	}
 
 	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
-		String regex = /^($templateJobPrefix)-(.*)-($templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
+		String regex = /^($templateJobPrefix)-(.*)-($templateDevelopmentSuffix|$templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
 
 		List<TemplateJob> templateJobs = allJobNames.findResults { String jobName ->
 
@@ -80,6 +83,7 @@ class JenkinsJobManager {
 	}
 
 	public void syncJobs(List<String> allBranchNames, List<String> jobNames, List<TemplateJob> templateJobs) {
+
 
 		def templateJobsByBranch = templateJobs.groupBy({ template -> template.templateBranchName })
 

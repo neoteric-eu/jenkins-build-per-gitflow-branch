@@ -11,8 +11,11 @@ class TemplateJob {
     String templateBranchName
 
     String jobNameForBranch(String branchName) {
+        println "-----> no cranky jankins "+branchName
         // git branches often have a forward slash in them, but they make jenkins cranky, turn it into an underscore
+        println "-----> branch name is "+branchName
         String safeBranchName = branchName.replaceAll('/', '_')
+        println "-----? jenkins branch name is "+safeBranchName
         return "$baseJobName-$safeBranchName"
     }
     
