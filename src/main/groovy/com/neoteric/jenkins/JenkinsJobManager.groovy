@@ -67,16 +67,45 @@ class JenkinsJobManager {
 	}
 
 	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
-		String regex = /^($templateJobPrefix)-(.*)-($templateDevelopmentSuffix|$templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
+		List<TemplateJob> templateJobs = new ArrayList<TemplateJob>();
 
-		List<TemplateJob> templateJobs = allJobNames.findResults { String jobName ->
+			for(String jobName:allJobNames){
+				if(jobName.contains(jobPrefix)){
+					String suffixToUse = "";
+					if(jobName.contains(templateDevelopmentSuffix)){
+						suffixToUse = templateDevelopmentSuffix;
+					}
+					else if(jobName.contains(templateFeatureSuffix)){
+						suffixToUse = templateFeatureSuffix;
+					}
+					else if(jobName.contains(templateHotfixSuffix)) {
+						suffixToUse = templateHotfixSuffix;
+					}
+					else if(jobName.contains(templateReleaseSuffix)) {
+						suffixToUse = templateReleaseSuffix;
+					}
+					else {
+						continue;
+					}
+					int suffixStarts = jobName.indexOf(suffixToUse);
+					int branchNameStarts = jobName.indexOf("_");
+					String branchName = "";
+					String templateName = "";
 
-			TemplateJob templateJob = null
-			jobName.find(regex) {full, templateName, baseJobName, branchName ->
-				templateJob = new TemplateJob(jobName: full, baseJobName: baseJobName, templateBranchName: branchName)
+					if(branchNameStarts == -1){
+						templateName = jobName.substring(suffixStarts,jobName.length());
+					}
+					else {
+						templateName = jobName.substring(suffixStarts,branchNameStarts);
+						branchName = jobName.substring(branchNameStarts+1,jobName.length());
+					}
+
+					String baseName = jobName.substring(jobName.indexOf(jobPrefix)+jobPrefix.length()+1,suffixStarts-1);
+
+					TemplateJob t = new TemplateJob(jobName,base,template);
+					templateJobs.add(t);
+					}
 			}
-			return templateJob
-		}
 
 		assert templateJobs?.size() > 0, "Unable to find any jobs matching template regex: $regex\nYou need at least one job to match the templateJobPrefix and templateBranchName (feature, hotfix, release) suffix arguments"
 		return templateJobs
