@@ -27,9 +27,9 @@ class JenkinsJobManager {
 	String templateReleaseSuffix = "release"
 
 	def branchSuffixMatch = [(templateDevelopmentSuffix) : developmentSuffix,
-							(templateFeatureSuffix) : featureSuffix,
-							 (templateHotfixSuffix) : hotfixSuffix,
-							 (templateReleaseSuffix): releaseSuffix]
+		(templateFeatureSuffix) : featureSuffix,
+		(templateHotfixSuffix) : hotfixSuffix,
+		(templateReleaseSuffix): releaseSuffix]
 
 	JenkinsApi jenkinsApi
 	GitApi gitApi
@@ -67,48 +67,74 @@ class JenkinsJobManager {
 	}
 
 	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
-		List<TemplateJob> templateJobs = new ArrayList<TemplateJob>();
+		List<TemplateJob> templateJobs = new ArrayList<TemplateJob>()
 
-			for(String jobName:allJobNames){
-				if(jobName.contains(jobPrefix)){
-					String suffixToUse = "";
-					if(jobName.contains(templateDevelopmentSuffix)){
-						suffixToUse = templateDevelopmentSuffix;
-					}
-					else if(jobName.contains(templateFeatureSuffix)){
-						suffixToUse = templateFeatureSuffix;
-					}
-					else if(jobName.contains(templateHotfixSuffix)) {
-						suffixToUse = templateHotfixSuffix;
-					}
-					else if(jobName.contains(templateReleaseSuffix)) {
-						suffixToUse = templateReleaseSuffix;
-					}
-					else {
-						continue;
-					}
-					int suffixStarts = jobName.indexOf(suffixToUse);
-					int branchNameStarts = jobName.indexOf("_");
-					String branchName = "";
-					String templateName = "";
+		List<String> jobs = removeNonMatchingJobs(allJobNames)
 
-					if(branchNameStarts == -1){
-						templateName = jobName.substring(suffixStarts,jobName.length());
-					}
-					else {
-						templateName = jobName.substring(suffixStarts,branchNameStarts);
-						branchName = jobName.substring(branchNameStarts+1,jobName.length());
-					}
+		for(String jobName : allJobNames){
 
-					String baseName = jobName.substring(jobName.indexOf(jobPrefix)+jobPrefix.length()+1,suffixStarts-1);
-
-					TemplateJob t = new TemplateJob(jobName,base,template);
-					templateJobs.add(t);
-					}
+			int suffixStarts
+			if(jobName.contains(templateDevelopmentSuffix)){
+				suffixStarts = jobName.indexOf(templateDevelopmentSuffix)
+				println "\n\tdev "+suffixStarts
 			}
+			else if(jobName.contains(templateFeatureSuffix)){
+				suffixStarts = jobName.indexOf(templateFeatureSuffix)
+				println "\n\tfeature "+suffixStarts
+			}
+			else if(jobName.contains(templateHotfixSuffix)) {
+				suffixStarts = jobName.indexOf(templateHotfixSuffix)
+				println "\n\thotfix "+suffixStarts
+			}
+			else if(jobName.contains(templateReleaseSuffix)) {
+				suffixStarts = jobName.indexOf(templateReleaseSuffix)
+				println "\n\trelease "+suffixStarts
+			}
+			else {
+				continue;
+			}
+
+			int branchNameStarts = jobName.indexOf("_");
+			String branchName = "";
+			String templateName = "";
+
+			if(branchNameStarts == -1){
+				templateName = jobName.substring(suffixStarts,jobName.length());
+			}
+			else {
+				templateName = jobName.substring(suffixStarts,branchNameStarts);
+				branchName = jobName.substring(branchNameStarts+1,jobName.length());
+			}
+
+			println "\n\tjobName "+jobName
+			println "\n\t index of prefix "+jobName.indexOf(jobPrefix)
+			println "\n\tprefix length "+jobPrefix.length()
+			int where = jobPrefix.length()+1
+			println "\n\tprefix length and some "+where
+			int begin = jobPrefix.length() + where
+			println "\tbegin "+begin
+			String baseName = jobName.substring(jobName.indexOf(jobPrefix)+jobPrefix.length()+1,suffixStarts-1);
+
+			TemplateJob t = new TemplateJob(jobName,baseName,branchName);
+			println "\tadded "+jobName
+			templateJobs.add(t);
+		}
 
 		assert templateJobs?.size() > 0, "Unable to find any jobs matching template regex: $regex\nYou need at least one job to match the templateJobPrefix and templateBranchName (feature, hotfix, release) suffix arguments"
 		return templateJobs
+	}
+
+	private List<String> removeNonMatchingJobs(List<String> allJobs){
+		println "\tjobprefix "+jobPrefix
+		Iterator iter = allJobs.iterator();
+
+		while(iter.hasNext()){
+			String jobName = iter.next()
+
+			if(!jobName.contains(jobPrefix)){
+				iter.remove()
+			}//if
+		}//while
 	}
 
 	public void syncJobs(List<String> allBranchNames, List<String> jobNames, List<TemplateJob> templateJobs) {
@@ -196,8 +222,8 @@ class JenkinsJobManager {
 	}
 
 	String jobNameForBranch(String branchName, String baseJobName) {
-			// git branches often have a forward slash in them, but they make jenkins cranky, turn it into an underscore
-			String safeBranchName = branchName.replaceAll('/', '_')
-			return "$baseJobName-$safeBranchName"
+		// git branches often have a forward slash in them, but they make jenkins cranky, turn it into an underscore
+		String safeBranchName = branchName.replaceAll('/', '_')
+		return "$baseJobName-$safeBranchName"
 	}
 }
