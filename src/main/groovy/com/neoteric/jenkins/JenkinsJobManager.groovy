@@ -51,7 +51,7 @@ class JenkinsJobManager {
 		println "-------------------------------------"
 		println "All job names:" + allJobNames
 
-		List<TemplateJob> templateJobs = findRequiredTemplateJobs(allJobNames)
+		List<TemplateJob> templateJobs = findRequiredTemplateJobs(allJobNames,"build");
 		println "-------------------------------------"
 		println "Template Jobs:" + templateJobs
 
@@ -66,7 +66,7 @@ class JenkinsJobManager {
 
 	}
 
-	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
+	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames, String baseName) {
 		List<TemplateJob> templateJobs = new ArrayList<TemplateJob>()
 
 		List<String> jobs = removeNonMatchingJobs(allJobNames)
@@ -94,17 +94,7 @@ class JenkinsJobManager {
 				continue;
 			}
 
-			int branchNameStarts = jobName.indexOf("_");
-			String branchName = "";
-			String templateName = "";
-
-			if(branchNameStarts == -1){
-				templateName = jobName.substring(suffixStarts,jobName.length());
-			}
-			else {
-				templateName = jobName.substring(suffixStarts,branchNameStarts);
-				branchName = jobName.substring(branchNameStarts+1,jobName.length());
-			}
+			String branchName = jobName.substring(suffixStarts,jobName.length());
 
 			println "\n\tjobName "+jobName
 			println "\n\t index of prefix "+jobName.indexOf(jobPrefix)
@@ -113,7 +103,6 @@ class JenkinsJobManager {
 			println "\n\tprefix length and some "+where
 			int begin = jobPrefix.length() + where
 			println "\tbegin "+begin
-			String baseName = jobName.substring(jobName.indexOf(jobPrefix)+jobPrefix.length()+1,suffixStarts-1);
 
 			TemplateJob t = new TemplateJob(jobName,baseName,branchName);
 			println "\tadded "+jobName
