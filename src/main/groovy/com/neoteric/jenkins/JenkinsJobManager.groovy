@@ -16,20 +16,13 @@ class JenkinsJobManager {
 	Boolean noDelete = false
 	Boolean startOnCreate = false
 
-	String developmentSuffix = "development"
-	String featureSuffix = "feature/"
-	String hotfixSuffix = "hotfix/"
-	String releaseSuffix = "release"
-
 	String templateDevelopmentSuffix = "development"
 	String templateFeatureSuffix = "feature"
 	String templateHotfixSuffix = "hotfix"
 	String templateReleaseSuffix = "release"
-
-	def branchSuffixMatch = [(templateDevelopmentSuffix) : developmentSuffix,
-		(templateFeatureSuffix) : featureSuffix,
-		(templateHotfixSuffix) : hotfixSuffix,
-		(templateReleaseSuffix): releaseSuffix]
+	List<String> missingJobs
+	List<String> jobsToDelete
+	def jobNameToBranchName
 
 	JenkinsApi jenkinsApi
 	GitApi gitApi
@@ -52,189 +45,84 @@ class JenkinsJobManager {
 		println "\n-------------------------------------"
 		println "All job names:" + allJobNames +"\t"
 
-		List<TemplateJob> templateJobs = findRequiredTemplateJobs(allJobNames);
-		println "\n-------------------------------------"
-		println "Template Jobs:" + templateJobs +"\t"
+		missingJobs = [];
+		jobsToDelete = [];
+		jobNameToBranchName = [:]
+		// create any missing template jobs and delete any jobs matching the template patterns that no longer have branches
+		syncJobs(allBranchNames, allJobNames)
+		addMissingJobs()
+		deleteJobs()
+	}
 
+	void syncJobs(List<String> allBranchNames, List<String> allJobNames){
+		//first check for missing jobs
 		List<String> jobsWithJobPrefix = allJobNames.findAll {
 			jobName ->
 			jobName.startsWith(jobPrefix + '-')
 		}
 		println "\n-------------------------------------"
 		println "Jobs with provided prefix:" + jobsWithJobPrefix +"\t"
+		List<String> jenkinsBranchNames = new ArrayList<String>()
 
-		// create any missing template jobs and delete any jobs matching the template patterns that no longer have branches
-		syncJobs(allBranchNames, jobsWithJobPrefix, templateJobs)
+		//first check for branches that don't have jobs yet and add them
+		for(String branch:allBranchNames){
+			String trueName = jobNameForBranch(branch,jobPrefix+"-"+templateJobPrefix);
+			jenkinsBranchNames.add(trueName)
+			if(!allJobNames.contains(trueName)){
+				//add job
+				missingJobs.add(trueName)
+				jobNameToBranchName[trueName] = branch
+			}
+		}
 
+		//then check for jobs that don't have branches anymore and need to be deleted
+		for(String job:allJobNames){
+			if(!jenkinsBranchNames.contains(job)){
+				//delete job
+				jobsToDelete.add(job)
+			}
+		}
 	}
 
+	void addMissingJobs(){
+		for(String job:missingJobs){
+			String templateJobName = jobPrefix+"-"+templateJobPrefix
 
-	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
-		String regex = /^($templateJobPrefix)-(.*)-($templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
-
-		List<TemplateJob> templateJobs = allJobNames.findResults {
-			String jobName ->
-
-			TemplateJob templateJob = null
-			jobName.find(regex) {
-				full, templateName, baseJobName, branchName ->
-				templateJob = new TemplateJob(jobName: full, baseJobName: baseJobName, templateBranchName: branchName)
+			if(job.contains(templateJobName+"-"+templateDevelopmentSuffix)){
+				templateJobName = templateJobName + "-" + templateDevelopmentSuffix
 			}
-			return templateJob
-		}
+			else if(job.contains(templateJobName+"-"+templateFeatureSuffix)){
+				templateJobName = templateJobName + "-" + templateFeatureSuffix
+			}
+			else if(job.contains(templateJobName+"-"+templateHotfixSuffix)){
+				templateJobName = templateJobName + "-" + templateHotfixSuffix
+			}
+			else if(job.contains(templateJobName+"-"+templateReleaseSuffix)){
+				templateJobName = templateJobName + "-" + templateReleaseSuffix
+			}
+			else {
+				//throw an error because a template job for this branch doesn't exist
+			}
 
-		assert templateJobs?.size() > 0, "Unable to find any jobs matching template regex: $regex\nYou need at least one job to match the templateJobPrefix and templateBranchName (feature, hotfix, release) suffix arguments"
-		return templateJobs
+			String branchName = jobNameToBranchName[job]
+
+			println "Creating missing job: ${job} from ${templateJobName}"
+
+			jenkinsApi.cloneJobForBranch(templateJobName, missingJob, branchName, createJobInView, gitUrl)
+			jenkinsApi.startJob(templateJobName, missingJob)
+		}
 	}
 
-		/*public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames, String baseName) {
-		 String regex = /^($templateJobPrefix)-(.*)-($templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
-		 List<TemplateJob> templateJobs = new ArrayList<TemplateJob>()
-		 List<String> jobs = removeNonMatchingJobs(allJobNames)
-		 for(String jobName : allJobNames){
-		 int suffixStarts
-		 if(jobName.contains(templateDevelopmentSuffix)){
-		 suffixStarts = jobName.indexOf(templateDevelopmentSuffix)
-		 //println "\n\tdev "+suffixStarts
-		 }
-		 else if(jobName.contains(templateFeatureSuffix)){
-		 suffixStarts = jobName.indexOf(templateFeatureSuffix)
-		 //println "\n\tfeature "+suffixStarts
-		 }
-		 else if(jobName.contains(templateHotfixSuffix)) {
-		 suffixStarts = jobName.indexOf(templateHotfixSuffix)
-		 //println "\n\thotfix "+suffixStarts
-		 }
-		 else if(jobName.contains(templateReleaseSuffix)) {
-		 suffixStarts = jobName.indexOf(templateReleaseSuffix)
-		 //println "\n\trelease "+suffixStarts
-		 }
-		 else {
-		 continue;
-		 }
-		 String branchName = jobName.substring(suffixStarts,jobName.length());
-		 //	println "\n\tjobName "+jobName
-		 //println "\n\t index of prefix "+jobName.indexOf(jobPrefix)
-		 //println "\n\tprefix length "+jobPrefix.length()
-		 //int where = jobPrefix.length()+1
-		 //println "\n\tprefix length and some "+where
-		 //int begin = jobPrefix.length() + where
-		 //println "\tbegin "+begin
-		 TemplateJob t = new TemplateJob(jobName,baseName,branchName);
-		 println "\tadded "+jobName
-		 templateJobs.add(t);
-		 }
-		 assert templateJobs?.size() > 0, "Unable to find any jobs matching template regex: $regex\nYou need at least one job to match the templateJobPrefix and templateBranchName (development, feature, hotfix, release) suffix arguments"
-		 return templateJobs
-		 }*/
-
-		private List<String> removeNonMatchingJobs(List<String> allJobs){
-			println "\tjobprefix "+jobPrefix
-			Iterator iter = allJobs.iterator();
-
-			while(iter.hasNext()){
-				String jobName = iter.next()
-
-				if(!jobName.contains(jobPrefix)){
-					iter.remove()
-				}//if
-			}//while
-		}
-
-		public void syncJobs(List<String> allBranchNames, List<String> jobNames, List<TemplateJob> templateJobs) {
-
-			println "tempjobs size is $templateJobs.size()"
-			println "all branches size is $allBranchNames.size()"
-			def templateJobsByBranch = templateJobs.groupBy({
-				template -> template.templateBranchName
-			})
-			println "size is $templateJobsByBranch"
-
-			List<ConcreteJob> missingJobs = [];
-			List<String> jobsToDelete = [];
-
-			templateJobsByBranch.keySet().each {
-				templateBranchToProcess ->
-				println "\tChecking $templateBranchToProcess branches"
-				List<String> branchesWithCorrespondingTemplate = allBranchNames.findAll {
-					branchName ->
-					println "\t\tbranch name is $branchName\n"
-					branchName.startsWith(branchSuffixMatch[templateBranchToProcess])
-				}
-
-				println "\tFound corresponding branches: $branchesWithCorrespondingTemplate"
-				branchesWithCorrespondingTemplate.each {
-					branchToProcess ->
-
-					println "\t\tProcessing branch: $branchToProcess"
-
-					List<ConcreteJob> expectedJobsPerBranch = templateJobsByBranch[templateBranchToProcess].collect {
-						TemplateJob templateJob ->
-						templateJob.concreteJobForBranch(jobPrefix, branchToProcess)
-					}
-
-					println "\t\t\tExpected jobs for : "+jobNameForBranch(branchToProcess,jobPrefix)
-
-					expectedJobsPerBranch.each {
-						println "\t\t\t$it"
-					}
-					List<String> jobNamesPerBranch = jobNames.findAll{
-						it.contains(jobNameForBranch(branchToProcess,jobPrefix))
-					}
-
-					println "\t\tJob Names per branch:"
-
-					jobNamesPerBranch.each {
-						println "           $it"
-					}
-					List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll {
-						expectedJob ->
-						!jobNamesPerBranch.any {
-							it.contains(expectedJob.jobNameForBranch())
-						}
-					}
-
-					println "\n\t\tMissing jobs:"
-
-					missingJobsPerBranch.each {
-						println "\t\t\t$it"
-					}
-					missingJobs.addAll(missingJobsPerBranch)
-				}
-
-				List<String> deleteCandidates = jobNames.findAll {
-					it.contains(branchSuffixMatch[templateBranchToProcess])
-				}
-				List<String> jobsToDeletePerBranch = deleteCandidates.findAll {
-					candidate ->
-					!branchesWithCorrespondingTemplate.any {
-						candidate.endsWith(it)
-					}
-				}
-
-				println "\n\tJobs to delete:"
-				jobsToDeletePerBranch.each {
-					println "         $it"
-				}
-				jobsToDelete.addAll(jobsToDeletePerBranch)
-			}
-			println "\nSummary:\n---------------"
-			if (missingJobs) {
-				for(ConcreteJob missingJob in missingJobs) {
-					println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
-					jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView, gitUrl)
-					jenkinsApi.startJob(missingJob)
-				}
-			}
-
-			if (!noDelete && jobsToDelete) {
-				println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
-				jobsToDelete.each {
-					String jobName ->
-					jenkinsApi.deleteJob(jobName)
-				}
+	void deleteJobs(){
+		if (!noDelete && jobsToDelete) {
+			println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
+			jobsToDelete.each {
+				String jobName ->
+				jenkinsApi.deleteJob(jobName)
 			}
 		}
+	}
+
 
 		JenkinsApi initJenkinsApi() {
 			if (!jenkinsApi) {
