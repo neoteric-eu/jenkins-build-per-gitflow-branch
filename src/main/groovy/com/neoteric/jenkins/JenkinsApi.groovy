@@ -13,8 +13,8 @@ import org.apache.http.protocol.HttpContext
 import org.apache.http.HttpRequest
 
 class JenkinsApi {
-	
-	
+
+
 	final String SHOULD_START_PARAM_NAME = "startOnCreate"
 	String jenkinsServerUrl
 	RESTClient restClient
@@ -42,7 +42,7 @@ class JenkinsApi {
 	}
 
 	List<String> getJobNames(String prefix = null) {
-		println "getting project names from " + jenkinsServerUrl + "api/json"
+
 		def response = get(path: 'api/json')
 		def jobNames = response.data.jobs.name
 		if (prefix) return jobNames.findAll { it.startsWith(prefix) }
@@ -50,26 +50,27 @@ class JenkinsApi {
 	}
 
 	String getJobConfig(String jobName) {
+
 		def response = get(path: "job/${jobName}/config.xml", contentType: TEXT,
 		headers: [Accept: 'application/xml'])
+
 		response.data.text
 	}
 
-	void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl) {
+	void cloneJobForBranch(String templateJob, String missingJob, String branchName, String createJobInView, String gitUrl) {
 		String createJobInViewPath = resolveViewPath(createJobInView)
-		println "-----> createInView after" + createJobInView
-		String missingJobConfig = configForMissingJob(missingJob, gitUrl)
-		TemplateJob templateJob = missingJob.templateJob
+		println "-----> createInView after: " + createJobInView
+		String missingJobConfig = configForMissingJob(templateJob, branchName, gitUrl)
 
 		//Copy job with jenkins copy job api, this will make sure jenkins plugins get the call to make a copy if needed (promoted builds plugin needs this)
-		post(createJobInViewPath + 'createItem', missingJobConfig, [name: missingJob.jobName, mode: 'copy', from: templateJob.jobName], ContentType.XML)
+		post(createJobInViewPath + 'createItem', missingJobConfig, [name: missingJob, mode: 'copy', from: templateJob], ContentType.XML)
 
-		post('job/' + missingJob.jobName + "/config.xml", missingJobConfig, [:], ContentType.XML)
+		post('job/' + missingJob + "/config.xml", missingJobConfig, [:], ContentType.XML)
 		//Forced disable enable to work around Jenkins' automatic disabling of clones jobs
 		//But only if the original job was enabled
-		post('job/' + missingJob.jobName + '/disable')
+		post('job/' + missingJob + '/disable')
 		if (!missingJobConfig.contains("<disabled>true</disabled>")) {
-			post('job/' + missingJob.jobName + '/enable')
+			post('job/' + missingJob+ '/enable')
 		}
 	}
 
@@ -82,57 +83,62 @@ class JenkinsApi {
 		elements.join();
 	}
 
-	String configForMissingJob(ConcreteJob missingJob, String gitUrl) {
-		TemplateJob templateJob = missingJob.templateJob
-		String config = getJobConfig(templateJob.jobName)
-		return processConfig(config, missingJob.branchName, gitUrl)
+	String configForMissingJob(String templateJob, String branchName, String gitUrl) {
+		String config = getJobConfig(templateJob)
+		return processConfig(config, branchName, gitUrl)
 	}
 
 	public String processConfig(String entryConfig, String branchName, String gitUrl) {
+
 		def root = new XmlParser().parseText(entryConfig)
+
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
-		
+
 		// update GIT url
 		root.scm.userRemoteConfigs."hudson.plugins.git.UserRemoteConfig".url[0].value = "$gitUrl"
-		
+
 		//update Sonar
 		if (root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0] != null) {
 			root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
 		}
-		
-		
+
+
 		//remove template build variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)
 		if (startOnCreateParam) {
 			startOnCreateParam.parent().remove(startOnCreateParam)
 		}
-		
+
 		//check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
 		def propertiesNode = root.properties
-		def parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
-		
-		if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
-			root.remove(propertiesNode)
-			new Node(root, 'properties')
+		def parameterDefinitionsProperty
+		//the neoteric people hard coded property names and didn't do defensive coding. This causes an NPE. tisk tisk!!
+		if(propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0] !=null){
+
+			parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
+
+			if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
+				root.remove(propertiesNode)
+				new Node(root, 'properties')
+			}
 		}
-		
-		
+
 		def writer = new StringWriter()
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
 		xmlPrinter.setPreserveWhitespace(true)
 		xmlPrinter.print(root)
 		return writer.toString()
 	}
-	
-	void startJob(ConcreteJob job) {
-		String templateConfig = getJobConfig(job.templateJob.jobName)
+
+	void startJob(String templateJob, String jobName) {
+		String templateConfig = getJobConfig(templateJob)
 		if (shouldStartJob(templateConfig)) {
-			println "Starting job ${job.jobName}."
-			post('job/' + job.jobName + '/build')
+			println "Starting job ${jobName}."
+			post('job/' + jobName + '/build')
 		}
 	}
-	
+
 	public boolean shouldStartJob(String config) {
 		Node root = new XmlParser().parseText(config)
 		Node startOnCreateParam = findStartOnCreateParameter(root)
@@ -141,7 +147,7 @@ class JenkinsApi {
 		}
 		return startOnCreateParam.defaultValue[0]?.text().toBoolean()
 	}
-	
+
 	Node findStartOnCreateParameter(Node root) {
 		return root.properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions."hudson.model.BooleanParameterDefinition".find {
 			it.name[0].text() == SHOULD_START_PARAM_NAME

@@ -1,6 +1,10 @@
 # Jenkins Build Per Git Flow Branch
 This script will allow you to keep your Jenkins jobs in sync with your Git repository (following Git Flow branching model).
 
+**This repository was forked from https://github.com/neoteric-eu/jenkins-build-per-gitflow-branch**
+*the build.gradle file was updated to contain the newest dependency versions along with the repository*
+
+
 ### Genesis
 This is a variation of a solution we found. Hence, the credit for the idea and initial implementation goes to Entagen and theirs [Jenkins Build Per Branch]. They explained it nicely, so it's advisable to take a look to their page. As stated, Entagen's version would suit better for a [GitHub flow] convention. Our need is to have three different templates for each of the Git Flow branches: features, releases, hotfixes and to sync them all in one 'scanning session' (single Jenkins sync job execution). I found it impossible using the original solution.
 So, we reused the concept of Entagen's script, but replaced the synchronization logic with what suited us better.
@@ -47,7 +51,8 @@ The whole idea is to have a single Jenkins job which executes periodically, chec
 ##### 2. Add script parameters (provided in Switches box)
 - `-DjenkinsUrl` URL of the Jenkins.You should be able to append api/json to the URL to get JSON feed.
 - `-DjenkinsUser` Jenkins HTTP basic authorization user name. (optional)
-- `-DjenkinsPasswrd` Jenkins HTTP basic authorization password. (optional)
+- `-DjenkinsPassword` Jenkins HTTP basic authorization password. (optional)
+*The original Usage has this variable as jenkinsPasswrd without the 'o'. This is why proofreading is so important"
 - `-DgitUrl` URL of the Git repository to make the synchronization against.
 - `-DdryRun` Pass this flag with any value and it won't make any changes to Jenkins (preview mode). It is recommended to use dry run until everything is set up correctly. (optional)
 - `-DtemplateJobPrefix` Prefix name of template jobs to use

@@ -13,6 +13,7 @@ class GitApi {
 		eachResultLine(command) { String line ->
 			String branchNameRegex = "^.*\trefs/heads/(.*)\$"
 			String branchName = line.find(branchNameRegex) { full, branchName -> branchName }
+			println "----- getBranchNames: branchName "+branchName
 			Boolean selected = passesFilter(branchName)
 			println "\t" + (selected ? "* " : "  ") + "$line"
 			// lines are in the format of: <SHA>\trefs/heads/BRANCH_NAME

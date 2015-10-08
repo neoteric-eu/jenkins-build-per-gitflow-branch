@@ -16,17 +16,13 @@ class JenkinsJobManager {
 	Boolean noDelete = false
 	Boolean startOnCreate = false
 
-	String featureSuffix = "feature-"
-	String hotfixSuffix = "hotfix-"
-	String releaseSuffix = "release-"
-
+	String templateDevelopmentSuffix = "development"
 	String templateFeatureSuffix = "feature"
 	String templateHotfixSuffix = "hotfix"
 	String templateReleaseSuffix = "release"
-
-	def branchSuffixMatch = [(templateFeatureSuffix): featureSuffix,
-							 (templateHotfixSuffix) : hotfixSuffix,
-							 (templateReleaseSuffix): releaseSuffix]
+	List<String> missingJobs
+	List<String> jobsToDelete
+	def jobNameToBranchName
 
 	JenkinsApi jenkinsApi
 	GitApi gitApi
@@ -35,130 +31,127 @@ class JenkinsJobManager {
 		for (property in props) {
 			this."${property.key}" = property.value
 		}
+
 		initJenkinsApi()
 		initGitApi()
 	}
 
 	void syncWithRepo() {
 		List<String> allBranchNames = gitApi.branchNames
-		println "-------------------------------------"
-		println "All branch names:" + allBranchNames
+		println "\n-------------------------------------"
+		println "All branch names:" + allBranchNames +"\t"
 
 		List<String> allJobNames = jenkinsApi.jobNames
-		println "-------------------------------------"
-		println "All job names:" + allJobNames
+		println "\n-------------------------------------"
+		println "All job names:" + allJobNames +"\t"
 
-		List<TemplateJob> templateJobs = findRequiredTemplateJobs(allJobNames)
-		println "-------------------------------------"
-		println "Template Jobs:" + templateJobs
+		missingJobs = [];
+		jobsToDelete = [];
+		jobNameToBranchName = [:]
+		// create any missing template jobs and delete any jobs matching the template patterns that no longer have branches
+		syncJobs(allBranchNames, allJobNames)
+		addMissingJobs()
+		deleteJobs()
+	}
 
-		List<String> jobsWithJobPrefix = allJobNames.findAll { jobName ->
+	void syncJobs(List<String> allBranchNames, List<String> allJobNames){
+		//first check for missing jobs
+		List<String> jobsWithJobPrefix = allJobNames.findAll {
+			jobName ->
 			jobName.startsWith(jobPrefix + '-')
 		}
-		println "-------------------------------------"
-		println "Jobs with provided prefix:" + jobsWithJobPrefix
+		println "\n-------------------------------------"
+		println "Jobs with provided prefix:" + jobsWithJobPrefix +"\t"
+		List<String> jenkinsBranchNames = new ArrayList<String>()
 
-		// create any missing template jobs and delete any jobs matching the template patterns that no longer have branches
-		syncJobs(allBranchNames, jobsWithJobPrefix, templateJobs)
+		//first check for branches that don't have jobs yet and add them
+		for(String branch:allBranchNames){
+			String trueName = jobNameForBranch(branch,jobPrefix+"-"+templateJobPrefix);
+			jenkinsBranchNames.add(trueName)
+			if(!allJobNames.contains(trueName)){
+				//add job
+				missingJobs.add(trueName)
+				jobNameToBranchName[trueName] = branch
+			}
+		}
 
+		//then check for jobs that don't have branches anymore and need to be deleted
+		for(String job:allJobNames){
+			if(!jenkinsBranchNames.contains(job)){
+				//delete job
+				jobsToDelete.add(job)
+			}
+		}
 	}
 
-	public List<TemplateJob> findRequiredTemplateJobs(List<String> allJobNames) {
-		String regex = /^($templateJobPrefix)-(.*)-($templateFeatureSuffix|$templateReleaseSuffix|$templateHotfixSuffix)$/
+	void addMissingJobs(){
+		for(String job:missingJobs){
+			String templateJobName = jobPrefix+"-"+templateJobPrefix
 
-		List<TemplateJob> templateJobs = allJobNames.findResults { String jobName ->
-
-			TemplateJob templateJob = null
-			jobName.find(regex) {full, templateName, baseJobName, branchName ->
-				templateJob = new TemplateJob(jobName: full, baseJobName: baseJobName, templateBranchName: branchName)
+			if(job.contains(templateJobName+"-"+templateDevelopmentSuffix)){
+				templateJobName = templateJobName + "-" + templateDevelopmentSuffix
 			}
-			return templateJob
-		}
+			else if(job.contains(templateJobName+"-"+templateFeatureSuffix)){
+				templateJobName = templateJobName + "-" + templateFeatureSuffix
+			}
+			else if(job.contains(templateJobName+"-"+templateHotfixSuffix)){
+				templateJobName = templateJobName + "-" + templateHotfixSuffix
+			}
+			else if(job.contains(templateJobName+"-"+templateReleaseSuffix)){
+				templateJobName = templateJobName + "-" + templateReleaseSuffix
+			}
+			else {
+				//throw an error because a template job for this branch doesn't exist
+			}
 
-		assert templateJobs?.size() > 0, "Unable to find any jobs matching template regex: $regex\nYou need at least one job to match the templateJobPrefix and templateBranchName (feature, hotfix, release) suffix arguments"
-		return templateJobs
+			String branchName = jobNameToBranchName[job]
+
+			println "Creating missing job: ${job} from ${templateJobName}"
+
+			jenkinsApi.cloneJobForBranch(templateJobName, missingJob, branchName, createJobInView, gitUrl)
+			jenkinsApi.startJob(templateJobName, missingJob)
+		}
 	}
 
-	public void syncJobs(List<String> allBranchNames, List<String> jobNames, List<TemplateJob> templateJobs) {
-
-		def templateJobsByBranch = templateJobs.groupBy({ template -> template.templateBranchName })
-
-		List<ConcreteJob> missingJobs = [];
-		List<String> jobsToDelete = [];
-
-		templateJobsByBranch.keySet().each { templateBranchToProcess ->
-			println "-> Checking $templateBranchToProcess branches"
-			List<String> branchesWithCorrespondingTemplate = allBranchNames.findAll { branchName ->
-				branchName.startsWith(branchSuffixMatch[templateBranchToProcess])
-			}
-
-			println "---> Founded corresponding branches: $branchesWithCorrespondingTemplate"
-			branchesWithCorrespondingTemplate.each { branchToProcess ->
-				println "-----> Processing branch: $branchToProcess"
-				List<ConcreteJob> expectedJobsPerBranch = templateJobsByBranch[templateBranchToProcess].collect { TemplateJob templateJob ->
-					templateJob.concreteJobForBranch(jobPrefix, branchToProcess)
-				}
-				println "-------> Expected jobs:"
-				expectedJobsPerBranch.each { println "           $it" }
-				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess) }
-				println "-------> Job Names per branch:"
-				jobNamesPerBranch.each { println "           $it" }
-				List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll { expectedJob ->
-					!jobNamesPerBranch.any {it.contains(expectedJob.jobName) }
-				}
-				println "-------> Missing jobs:"
-				missingJobsPerBranch.each { println "           $it" }
-				missingJobs.addAll(missingJobsPerBranch)
-			}
-
-			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchSuffixMatch[templateBranchToProcess]) }
-			List<String> jobsToDeletePerBranch = deleteCandidates.findAll { candidate ->
-				!branchesWithCorrespondingTemplate.any { candidate.endsWith(it) }
-			}
-
-			println "-----> Jobs to delete:"
-			jobsToDeletePerBranch.each { println "         $it" }
-			jobsToDelete.addAll(jobsToDeletePerBranch)
-		}
-		println "\nSummary:\n---------------"
-		if (missingJobs) {
-			for(ConcreteJob missingJob in missingJobs) {
-				println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
-				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView, gitUrl)
-				jenkinsApi.startJob(missingJob)
-			}
-		}
-		
+	void deleteJobs(){
 		if (!noDelete && jobsToDelete) {
 			println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
-			jobsToDelete.each { String jobName ->
+			jobsToDelete.each {
+				String jobName ->
 				jenkinsApi.deleteJob(jobName)
 			}
 		}
 	}
-	
-	JenkinsApi initJenkinsApi() {
-		if (!jenkinsApi) {
-			assert jenkinsUrl != null
-			if (dryRun) {
-				println "DRY RUN! Not executing any POST commands to Jenkins, only GET commands"
-				this.jenkinsApi = new JenkinsApiReadOnly(jenkinsServerUrl: jenkinsUrl)
-			} else {
-				this.jenkinsApi = new JenkinsApi(jenkinsServerUrl: jenkinsUrl)
+
+
+		JenkinsApi initJenkinsApi() {
+			if (!jenkinsApi) {
+				assert jenkinsUrl != null
+				if (dryRun) {
+					println "DRY RUN! Not executing any POST commands to Jenkins, only GET commands"
+					this.jenkinsApi = new JenkinsApiReadOnly(jenkinsServerUrl: jenkinsUrl)
+				} else {
+					this.jenkinsApi = new JenkinsApi(jenkinsServerUrl: jenkinsUrl)
+				}
+
+				if (jenkinsUser || jenkinsPassword) this.jenkinsApi.addBasicAuth(jenkinsUser, jenkinsPassword)
 			}
 
-			if (jenkinsUser || jenkinsPassword) this.jenkinsApi.addBasicAuth(jenkinsUser, jenkinsPassword)
+			return this.jenkinsApi
 		}
 
-		return this.jenkinsApi
-	}
+		GitApi initGitApi() {
+			if (!gitApi) {
+				assert gitUrl != null
+				this.gitApi = new GitApi(gitUrl: gitUrl)
+			}
 
-	GitApi initGitApi() {
-		if (!gitApi) {
-			assert gitUrl != null
-			this.gitApi = new GitApi(gitUrl: gitUrl)
+			return this.gitApi
 		}
 
-		return this.gitApi
+		String jobNameForBranch(String branchName, String baseJobName) {
+			// git branches often have a forward slash in them, but they make jenkins cranky, turn it into an underscore
+			String safeBranchName = branchName.replaceAll('/', '-')
+			return "$baseJobName-$safeBranchName"
+		}
 	}
-}
