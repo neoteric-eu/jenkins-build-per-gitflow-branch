@@ -16,9 +16,9 @@ class JenkinsJobManager {
 	Boolean noDelete = false
 	Boolean startOnCreate = false
 
-	String featureSuffix = "feature-"
-	String hotfixSuffix = "hotfix-"
-	String releaseSuffix = "release-"
+	String featureSuffix = "feature/"
+	String hotfixSuffix = "hotfix/"
+	String releaseSuffix = "release/"
 
 	String templateFeatureSuffix = "feature"
 	String templateHotfixSuffix = "hotfix"
@@ -100,7 +100,7 @@ class JenkinsJobManager {
 				}
 				println "-------> Expected jobs:"
 				expectedJobsPerBranch.each { println "           $it" }
-				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess) }
+				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess.replace("/","_")) }
 				println "-------> Job Names per branch:"
 				jobNamesPerBranch.each { println "           $it" }
 				List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll { expectedJob ->
@@ -111,9 +111,9 @@ class JenkinsJobManager {
 				missingJobs.addAll(missingJobsPerBranch)
 			}
 
-			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchSuffixMatch[templateBranchToProcess]) }
+			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchSuffixMatch[templateBranchToProcess].replace("/","_")) }
 			List<String> jobsToDeletePerBranch = deleteCandidates.findAll { candidate ->
-				!branchesWithCorrespondingTemplate.any { candidate.endsWith(it) }
+				!branchesWithCorrespondingTemplate.any { candidate.replace("/","_").endsWith(it.replace("/","_")) }
 			}
 
 			println "-----> Jobs to delete:"

@@ -81,23 +81,23 @@ class JenkinsJobManagerTests {
 		]
 
 		List<String> jobNames = [
-			"NeoDocs-build-feature-test1",
+			"NeoDocs-build-feature_test1",
 			// add missing deploy test1
-			"NeoDocs-deploy-feature-test2",
+			"NeoDocs-deploy-feature_test2",
 			// add missing build test2
-			"NeoDocs-deploy-feature-test3",
+			"NeoDocs-deploy-feature_test3",
 			// to delete
-			"NeoDocs-build-hotfix-emergency",
+			"NeoDocs-build-hotfix_emergency",
 			// do nothing - already there
 			"NeoDocs-build-release" // do nothing - no template avail
 		]
 
 		List<String> branchNames = [
-			"feature-test1",
-			"feature-test2",
+			"feature/test1",
+			"feature/test2",
 			"master",
-			"release-1.0.0",
-			"hotfix-emergency"
+			"release/1.0.0",
+			"hotfix/emergency"
 		]
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "NeoDocs", templateJobPrefix: "NeoDocsTemplates", gitUrl: "git@dummy.com:company/myproj.git", jenkinsUrl: "http://dummy.com")
 
@@ -105,9 +105,9 @@ class JenkinsJobManagerTests {
 		jenkinsJobManager.syncJobs(branchNames ,jobNames, templateJobs)
 
 		assertThat(log.getLog().substring(log.getLog().indexOf("Summary"))).containsSequence( 
-			"Creating", "NeoDocs-deploy-feature-test1 from NeoDocsTemplates-deploy-feature",
-						"NeoDocs-build-feature-test2 from NeoDocsTemplates-build-feature",
-			"Deleting", "NeoDocs-deploy-feature-test3")
+			"Creating", "NeoDocs-deploy-feature_test1 from NeoDocsTemplates-deploy-feature",
+						"NeoDocs-build-feature_test2 from NeoDocsTemplates-build-feature",
+			"Deleting", "NeoDocs-deploy-feature_test3")
 		}
 
 	class JenkinsApiMocked extends JenkinsApi {
