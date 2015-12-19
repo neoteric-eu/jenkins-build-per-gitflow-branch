@@ -25,7 +25,7 @@ Regular jobs should follow similar pattern `<jobPrefix>-<jobName>-<branchName>`,
 - *jobPrefix* - is a prefix which distinguish particular project
 - for *jobName* and *branchName* apply the same rule as for templates 
 
-Git Flow branches should start with *feature-*, *hotfix-*, *release-* prefixes. It is because, Jenkins is having hard time with slashes (i.e. *feature/*, *hotfix/*, *release/*). There are some workarounds (substituting '/' with and underscore for a jenkins job name - take a look into the [code of Entagen version]), but we were fine with this trade off. 
+Git Flow branches should start with *feature/*, *hotfix/*, *release/* prefixes. Unlike the original script from /neoteric-eu/jenkins-build-per-gitflow-branch this script will only work with / and will create new jobs with _ in the Job Name instead of a dash (Ex. feature_FeatureName instead of feature-FeatureName).
 
 ### Usage
 Usage is also very similiar to the original, but let me retrace the steps:
