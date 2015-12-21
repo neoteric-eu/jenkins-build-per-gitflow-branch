@@ -16,13 +16,19 @@ class JenkinsJobManager {
 	Boolean noDelete = false
 	Boolean startOnCreate = false
 
-	String featureSuffix = "feature-"
-	String hotfixSuffix = "hotfix-"
-	String releaseSuffix = "release-"
+	String featureSuffix = "feature/"
+	String hotfixSuffix = "hotfix/"
+	String releaseSuffix = "release/"
 
 	String templateFeatureSuffix = "feature"
 	String templateHotfixSuffix = "hotfix"
 	String templateReleaseSuffix = "release"
+
+	String shellScriptBeforeJobCreation = null
+	String shellScriptBeforeJobDeletion = null
+	String shellScriptAfterJobCreation = null
+	String shellScriptAfterJobDeletion = null
+
 
 	def branchSuffixMatch = [(templateFeatureSuffix): featureSuffix,
 							 (templateHotfixSuffix) : hotfixSuffix,
@@ -100,7 +106,7 @@ class JenkinsJobManager {
 				}
 				println "-------> Expected jobs:"
 				expectedJobsPerBranch.each { println "           $it" }
-				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess) }
+				List<String> jobNamesPerBranch = jobNames.findAll{ it.endsWith(branchToProcess.replace("/","_")) }
 				println "-------> Job Names per branch:"
 				jobNamesPerBranch.each { println "           $it" }
 				List<ConcreteJob> missingJobsPerBranch = expectedJobsPerBranch.findAll { expectedJob ->
@@ -111,9 +117,9 @@ class JenkinsJobManager {
 				missingJobs.addAll(missingJobsPerBranch)
 			}
 
-			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchSuffixMatch[templateBranchToProcess]) }
+			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchSuffixMatch[templateBranchToProcess].replace("/","_")) }
 			List<String> jobsToDeletePerBranch = deleteCandidates.findAll { candidate ->
-				!branchesWithCorrespondingTemplate.any { candidate.endsWith(it) }
+				!branchesWithCorrespondingTemplate.any { candidate.replace("/","_").endsWith(it.replace("/","_")) }
 			}
 
 			println "-----> Jobs to delete:"
@@ -123,16 +129,35 @@ class JenkinsJobManager {
 		println "\nSummary:\n---------------"
 		if (missingJobs) {
 			for(ConcreteJob missingJob in missingJobs) {
+				if(shellScriptBeforeJobCreation != null)
+				{
+					executeShellScript(shellScriptBeforeJobCreation, missingJob.jobName);
+				}
 				println "Creating missing job: ${missingJob.jobName} from ${missingJob.templateJob.jobName}"
 				jenkinsApi.cloneJobForBranch(jobPrefix, missingJob, createJobInView, gitUrl)
 				jenkinsApi.startJob(missingJob)
+				if(shellScriptAfterJobCreation != null)
+				{
+					executeShellScript(shellScriptAfterJobCreation, missingJob.jobName);
+				}
 			}
 		}
 		
 		if (!noDelete && jobsToDelete) {
 			println "Deleting deprecated jobs:\n\t${jobsToDelete.join('\n\t')}"
+
 			jobsToDelete.each { String jobName ->
+				if(shellScriptBeforeJobDeletion != null)
+				{
+					executeShellScript(shellScriptBeforeJobDeletion, jobName);
+				}
+
 				jenkinsApi.deleteJob(jobName)
+
+				if(shellScriptAfterJobDeletion != null)
+				{
+					executeShellScript(shellScriptAfterJobDeletion, jobName);
+				}
 			}
 		}
 	}
@@ -161,4 +186,37 @@ class JenkinsJobManager {
 
 		return this.gitApi
 	}
+
+
+	void executeShellScript(String scriptNameToExecute, String jobName)
+	{
+
+		println System.getProperty("user.dir");
+		String commandToExecute;
+		if (System.properties['os.name'].toLowerCase().contains('windows')) { //source: http://stackoverflow.com/questions/4689240/detecting-the-platform-window-or-linux-by-groovy-grails
+			//it's Windows
+			commandToExecute = "powershell "
+		} else {
+			// it's not Windows so do nothing
+		}
+
+		if(commandToExecute != null && commandToExecute.contains("powershell")) {
+			commandToExecute += "./ShellScripts/" + scriptNameToExecute + " " + jobName
+		}
+		else {
+			commandToExecute = "./ShellScripts/" + scriptNameToExecute + " " + jobName
+		}
+
+		println "About to Execute: " + commandToExecute
+
+
+		def proc = (commandToExecute).execute()
+		println "stdout: ${proc.in.text}"
+
+		if(proc.exitValue() != 0) {
+			throw new Exception("FAILED TO EXECUTE: " + scriptNameToExecute)
+		}
+
+	}
+
 }

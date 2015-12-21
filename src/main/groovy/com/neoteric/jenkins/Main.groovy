@@ -15,7 +15,12 @@ class Main {
             i: [longOpt: 'create-job-in-view', required: false, args: 1, argName: 'createJobInView', description: "Create new job in specified view. When using this suppress view creation as well (-DnoViews=true) - gradle flag -DcreateInView=nestedView/view"],
             k: [longOpt: 'no-delete', required: false, args: 0, argName: 'noDelete', description: "Do not delete (keep) branches and views - gradle flag -DnoDelete=true"],
             usr: [longOpt: 'jenkins-user',  required: false, args: 1, argName: 'jenkinsUser', description: "Jenkins username - gradle flag -DjenkinsUser=<jenkinsUser>"],
-            pwd: [longOpt: 'jenkins-password',  required: false, args: 1, argName: 'jenkinsPassword', description: "Jenkins password - gradle flag -DjenkinsPassword=<jenkinsPassword>"]
+            pwd: [longOpt: 'jenkins-password',  required: false, args: 1, argName: 'jenkinsPassword', description: "Jenkins password - gradle flag -DjenkinsPassword=<jenkinsPassword>"],
+            z: [longOpt: 'shell-script-before-job-creation', required: false, args: 1, argName: 'shellScriptBeforeJobCreation', description: "This is the script we want to execute BEFORE the job is CREATED - gradle flag -DshellScriptBeforeJobCreation=<shellScriptBeforeJobCreation>"],
+            s: [longOpt: 'shell-script-after-job-creation', required: false, args: 1, argName: 'shellScriptAfterJobCreation', description: "This is the script we want to execute AFTER the job is CREATED - gradle flag -DshellScriptAfterJobCreation=<shellScriptAfterJobCreation>"],
+            t: [longOpt: 'shell-script-before-job-deletion', required: false, args: 1, argName: 'shellScriptBeforeJobDeletion', description: "This is the script we want to execute BEFORE the job is DELETED - gradle flag -DshellScriptBeforeJobDeletion=<shellScriptBeforeJobDeletion>"],
+            v: [longOpt: 'shell-script-after-job-deletion', required: false, args: 1, argName: 'shellScriptAfterJobDeletion', description: "This is the script we want to execute AFTER the job is DELETED - gradle flag -DshellScriptAfterJobDeletion=<shellScriptAfterJobDeletion>"],
+
     ]
 
     public static void main(String[] args) {

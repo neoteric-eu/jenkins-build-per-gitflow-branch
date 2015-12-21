@@ -1,3 +1,7 @@
+#Key differences between this repo and the original: https://github.com/neoteric-eu/jenkins-build-per-gitflow-branch
+- Supports "/" in git flow branch names
+- Additional command line parameters that allow pre/post job creation/deletion shell scripts to be run.
+
 # Jenkins Build Per Git Flow Branch
 This script will allow you to keep your Jenkins jobs in sync with your Git repository (following Git Flow branching model).
 
@@ -25,7 +29,7 @@ Regular jobs should follow similar pattern `<jobPrefix>-<jobName>-<branchName>`,
 - *jobPrefix* - is a prefix which distinguish particular project
 - for *jobName* and *branchName* apply the same rule as for templates 
 
-Git Flow branches should start with *feature-*, *hotfix-*, *release-* prefixes. It is because, Jenkins is having hard time with slashes (i.e. *feature/*, *hotfix/*, *release/*). There are some workarounds (substituting '/' with and underscore for a jenkins job name - take a look into the [code of Entagen version]), but we were fine with this trade off. 
+Git Flow branches should start with *feature/*, *hotfix/*, *release/* prefixes. Unlike the original script from /neoteric-eu/jenkins-build-per-gitflow-branch this script will only work with / and will create new jobs with _ in the Job Name instead of a dash (Ex. feature_FeatureName instead of feature-FeatureName).
 
 ### Usage
 Usage is also very similiar to the original, but let me retrace the steps:
@@ -54,6 +58,12 @@ The whole idea is to have a single Jenkins job which executes periodically, chec
 - `-DjobPrefix` Prefix name of project jobs to create
 - `-DcreateJobInView` If you want the script to create the job in a view provide the view name here. It also supports nested views, just separate them with a slash '/', ex. *view/nestedview*
 - `-DnoDelete` pass this flag with *true* value to avoid removing obsolete jobs (with no corresponding git branch) (optional)
+- `-DshellScriptBeforeJobCreation`pass this flag with the name of the shell script you want to execute under ShellScripts/ before the job is created (optional)
+- `-DshellScriptAfterJobCreation` pass this flag with the name of the shell script you want to execute under ShellScripts/ after the job is created (optional)
+- `-DshellScriptBeforeJobDeletion`pass this flag with the name of the shell script you want to execute under ShellScripts/ before the job is deleted (optional)
+- `-DshellScriptAfterJobDeletion` pass this flag with the name of the shell script you want to execute under ShellScripts/ after the job is deleted (optional)
+
+
 
 Sample parameters configuration:
 ```
@@ -64,6 +74,10 @@ Sample parameters configuration:
 -DtemplateJobPrefix=SimpleJarTemplate
 -DjobPrefix=ProjectOne
 -DcreateJobInView=ProjectOne
+-DshellScriptBeforeJobCreation=BeforeJobCreation.ps1
+-DshellScriptAfterJobCreation=AfterJobCreation.ps1
+-DshellScriptBeforeJobDeletion=BeforeJobDeletion.ps1
+-DshellScriptAfterJobDeletion=AfterJobDeletion.ps1
 ```
 
 ##### 3. Templates
