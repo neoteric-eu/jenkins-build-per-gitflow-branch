@@ -1,6 +1,6 @@
-#Key Differences between this repo and the original: https://github.com/neoteric-eu/jenkins-build-per-gitflow-branch
+#Key differences between this repo and the original: https://github.com/neoteric-eu/jenkins-build-per-gitflow-branch
 - Supports "/" in git flow branch names
-- Additional parameters to allow pre/post job creation/deletion shell scripts to be run.
+- Additional command line parameters that allow pre/post job creation/deletion shell scripts to be run.
 
 # Jenkins Build Per Git Flow Branch
 This script will allow you to keep your Jenkins jobs in sync with your Git repository (following Git Flow branching model).
