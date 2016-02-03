@@ -89,9 +89,6 @@ class JenkinsApi {
 	}
 
 	public String processConfig(String entryConfig, String branchName, String gitUrl) {
-		println "----> entryConfig"
-		println entryConfig
-
 		def root = new XmlParser().parseText(entryConfig)
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
