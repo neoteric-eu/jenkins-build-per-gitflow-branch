@@ -89,6 +89,9 @@ class JenkinsApi {
 	}
 
 	public String processConfig(String entryConfig, String branchName, String gitUrl) {
+		println "----> entryConfig"
+		println entryConfig
+
 		def root = new XmlParser().parseText(entryConfig)
 		// update branch name
 		root.scm.branches."hudson.plugins.git.BranchSpec".name[0].value = "*/$branchName"
@@ -101,7 +104,6 @@ class JenkinsApi {
 			root.publishers."hudson.plugins.sonar.SonarPublisher".branch[0].value = "$branchName"
 		}
 		
-		
 		//remove template build variable
 		Node startOnCreateParam = findStartOnCreateParameter(root)
 		if (startOnCreateParam) {
@@ -110,13 +112,12 @@ class JenkinsApi {
 		
 		//check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
 		def propertiesNode = root.properties
-		def parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
+		def parameterDefinitions = propertiesNode."hudson.model.ParametersDefinitionProperty"
+		def parameterDefinitionsProperty = parameterDefinitions.parameterDefinitions[0]
 		
 		if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
-			root.remove(propertiesNode)
-			new Node(root, 'properties')
+			propertiesNode.remove(parameterDefinitions)
 		}
-		
 		
 		def writer = new StringWriter()
 		XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
