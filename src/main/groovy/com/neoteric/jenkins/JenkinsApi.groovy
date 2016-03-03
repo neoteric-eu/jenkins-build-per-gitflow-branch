@@ -113,7 +113,7 @@ class JenkinsApi {
 		def parameterDefinitionsProperty = parameterDefinitions.parameterDefinitions[0]
 		
 		if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
-			propertiesNode.remove(parameterDefinitions)
+			parameterDefinitions.replaceNode{}
 		}
 		
 		def writer = new StringWriter()
