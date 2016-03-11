@@ -1,7 +1,5 @@
 package com.neoteric.jenkins
 
-import java.util.regex.Pattern
-
 class JenkinsJobManager {
 
 	String templateJobPrefix
@@ -16,6 +14,7 @@ class JenkinsJobManager {
 	Boolean noDelete = false
 	Boolean startOnCreate = false
 
+	String branchPrefix = ""
 	String featureSuffix = "feature-"
 	String hotfixSuffix = "hotfix-"
 	String releaseSuffix = "release-"
@@ -24,7 +23,7 @@ class JenkinsJobManager {
 	String templateHotfixSuffix = "hotfix"
 	String templateReleaseSuffix = "release"
 
-	def branchSuffixMatch = [(templateFeatureSuffix): featureSuffix,
+	def branchPrefixMatch = [(templateFeatureSuffix): featureSuffix,
 							 (templateHotfixSuffix) : hotfixSuffix,
 							 (templateReleaseSuffix): releaseSuffix]
 
@@ -90,7 +89,7 @@ class JenkinsJobManager {
 		templateJobsByBranch.keySet().each { templateBranchToProcess ->
 			println "-> Checking $templateBranchToProcess branches"
 			List<String> branchesWithCorrespondingTemplate = allBranchNames.findAll { branchName ->
-				branchName.startsWith(branchSuffixMatch[templateBranchToProcess])
+				branchName.startsWith(branchPrefix + branchPrefixMatch[templateBranchToProcess])
 			}
 
 			println "---> Founded corresponding branches: $branchesWithCorrespondingTemplate"
@@ -113,7 +112,7 @@ class JenkinsJobManager {
 				missingJobs.addAll(missingJobsPerBranch)
 			}
 
-			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchSuffixMatch[templateBranchToProcess]) }
+			List<String> deleteCandidates = jobNames.findAll {  it.contains(branchPrefixMatch[templateBranchToProcess]) }
 			List<String> jobsToDeletePerBranch = deleteCandidates.findAll { candidate ->
 				!branchesWithCorrespondingTemplate.any { candidate.endsWith(it) }
 			}
