@@ -16,7 +16,7 @@ class Main {
             k: [longOpt: 'no-delete', required: false, args: 0, argName: 'noDelete', description: "Do not delete (keep) branches and views - gradle flag -DnoDelete=true"],
             usr: [longOpt: 'jenkins-user',  required: false, args: 1, argName: 'jenkinsUser', description: "Jenkins username - gradle flag -DjenkinsUser=<jenkinsUser>"],
             pwd: [longOpt: 'jenkins-password',  required: false, args: 1, argName: 'jenkinsPassword', description: "Jenkins password - gradle flag -DjenkinsPassword=<jenkinsPassword>"],
-            bp: [longOpt: 'branch-prefix', required: false, args: 1, argName: 'branchPrefix', description: "Git Branch Prefix - gradle flag -DbranchPrefix=<branchPrefix>"]
+            b: [longOpt: 'branch-prefix', required: false, args: 1, argName: 'branchPrefix', description: "Git Branch Prefix - gradle flag -DbranchPrefix=<branchPrefix>"]
     ]
 
     public static void main(String[] args) {

@@ -14,7 +14,7 @@ class JenkinsJobManager {
 	Boolean noDelete = false
 	Boolean startOnCreate = false
 
-	String branchPrefix = ""
+	String branchPrefix
 	String featurePrefix = "feature-"
 	String hotfixPrefix = "hotfix-"
 	String releasePrefix = "release-"
