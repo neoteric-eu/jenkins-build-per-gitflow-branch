@@ -89,6 +89,7 @@ class JenkinsJobManager {
 		templateJobsByBranch.keySet().each { templateBranchToProcess ->
 			println "-> Checking $templateBranchToProcess branches"
 			List<String> branchesWithCorrespondingTemplate = allBranchNames.findAll { branchName ->
+				println "Considering " + branchName + " versus " + branchPrefix + branchPrefixMatch[templateBranchToProcess]
 				branchName.startsWith(branchPrefix + branchPrefixMatch[templateBranchToProcess])
 			}
 
