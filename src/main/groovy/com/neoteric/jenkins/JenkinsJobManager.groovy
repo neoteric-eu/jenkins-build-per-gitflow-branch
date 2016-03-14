@@ -15,17 +15,17 @@ class JenkinsJobManager {
 	Boolean startOnCreate = false
 
 	String branchPrefix = ""
-	String featureSuffix = "feature-"
-	String hotfixSuffix = "hotfix-"
-	String releaseSuffix = "release-"
+	String featurePrefix = "feature-"
+	String hotfixPrefix = "hotfix-"
+	String releasePrefix = "release-"
 
 	String templateFeatureSuffix = "feature"
 	String templateHotfixSuffix = "hotfix"
 	String templateReleaseSuffix = "release"
 
-	def branchPrefixMatch = [(templateFeatureSuffix): featureSuffix,
-							 (templateHotfixSuffix) : hotfixSuffix,
-							 (templateReleaseSuffix): releaseSuffix]
+	def branchPrefixMatch = [(templateFeatureSuffix): featurePrefix,
+							 (templateHotfixSuffix) : hotfixPrefix,
+							 (templateReleaseSuffix): releasePrefix]
 
 	JenkinsApi jenkinsApi
 	GitApi gitApi
