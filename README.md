@@ -47,7 +47,7 @@ The whole idea is to have a single Jenkins job which executes periodically, chec
 ##### 2. Add script parameters (provided in Switches box)
 - `-DjenkinsUrl` URL of the Jenkins.You should be able to append api/json to the URL to get JSON feed.
 - `-DjenkinsUser` Jenkins HTTP basic authorization user name. (optional)
-- `-DjenkinsPasswrd` Jenkins HTTP basic authorization password. (optional)
+- `-DjenkinsPassword` Jenkins HTTP basic authorization password. (optional)
 - `-DgitUrl` URL of the Git repository to make the synchronization against.
 - `-DdryRun` Pass this flag with any value and it won't make any changes to Jenkins (preview mode). It is recommended to use dry run until everything is set up correctly. (optional)
 - `-DtemplateJobPrefix` Prefix name of template jobs to use
