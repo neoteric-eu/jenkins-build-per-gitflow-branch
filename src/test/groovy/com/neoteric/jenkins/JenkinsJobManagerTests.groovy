@@ -87,7 +87,7 @@ class JenkinsJobManagerTests {
 			// add missing build test2
 			"NeoDocs-deploy-feature-test3",
 			// to delete
-			"NeoDocs-build-hotfix-awaria",
+			"NeoDocs-build-hotfix-emergency",
 			// do nothing - already there
 			"NeoDocs-build-release" // do nothing - no template avail
 		]
@@ -97,7 +97,7 @@ class JenkinsJobManagerTests {
 			"feature-test2",
 			"master",
 			"release-1.0.0",
-			"hotfix-awaria"
+			"hotfix-emergency"
 		]
 		JenkinsJobManager jenkinsJobManager = new JenkinsJobManager(jobPrefix: "NeoDocs", templateJobPrefix: "NeoDocsTemplates", gitUrl: "git@dummy.com:company/myproj.git", jenkinsUrl: "http://dummy.com")
 
