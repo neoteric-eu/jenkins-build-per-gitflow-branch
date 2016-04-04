@@ -29,7 +29,7 @@ task syncWithRepo(dependsOn: 'classes', type: JavaExec) {
     main = 'com.neoteric.jenkins.Main'
     classpath = sourceSets.main.runtimeClasspath
     // pass through specified system properties to the call to main
-    ['help', 'jenkinsUrl', 'jenkinsUser', 'jenkinsPassword', 'gitUrl', 'jobPrefix', 'templateJobPrefix', 'dryRun', 'createJobInView', 'noDelete'].each {
+    ['help', 'jenkinsUrl', 'jenkinsUser', 'jenkinsPassword', 'gitUrl', 'jobPrefix', 'templateJobPrefix', 'dryRun', 'createJobInView', 'scriptCommand', 'noDelete', 'sonarPassword', 'sonarUser', 'sonarUrl'].each {
         if (System.getProperty(it)) systemProperty it, System.getProperty(it)
     }
 

@@ -12,7 +12,7 @@ Requirements are the same for both script versions:
 - The git command line app also must be installed (this is already a requirement of the Jenkins Git Plugin), and it must be configured with credentials (likely an SSH key) that has authorization rights to the git repository
 - The best idea is to clone / fork this repository for your own usage (to make sure that the script remain intact). However, you can still use ours if you like.
 
-###Naming convention
+### Naming convention
 To make this script work properly, job names must follow few rules:
 
 Template jobs should follow
@@ -54,6 +54,9 @@ The whole idea is to have a single Jenkins job which executes periodically, chec
 - `-DjobPrefix` Prefix name of project jobs to create
 - `-DcreateJobInView` If you want the script to create the job in a view provide the view name here. It also supports nested views, just separate them with a slash '/', ex. *view/nestedview*
 - `-DnoDelete` pass this flag with *true* value to avoid removing obsolete jobs (with no corresponding git branch) (optional)
+- `-DsonarUrl` URL of the Sonar. (optional)
+- `-DsonarUser` Sonar HTTP basic authorization user name. (optional)
+- `-DsonarPassword` Sonar HTTP basic authorisation password. (optional)
 
 Sample parameters configuration:
 ```
@@ -64,6 +67,9 @@ Sample parameters configuration:
 -DtemplateJobPrefix=SimpleJarTemplate
 -DjobPrefix=ProjectOne
 -DcreateJobInView=ProjectOne
+-DsonarPassword=password
+-DsonarUser=user
+-DsonarUrl=http://mysonarhost.com:9090/
 ```
 
 ##### 3. Templates
@@ -75,8 +81,12 @@ Notes on configuring your template:
 - Branch to build is going to be determined and set by the script
 - If you use Sonar and want to have Sonar builds separated for each branch type, just add Sonar capability to your template and the Sonar branch option will be determined and set by the script
 
+##### 4. Sonar Notes
+When a -DsonarUser and -DsonarUrl flags are both used script will try to delete Sonar project created by a template, when a job in Jenkins becomes deprecated. 
+
 [Jenkins Build Per Branch]:http://entagen.github.io/jenkins-build-per-branch/
 [GitHub flow]:http://scottchacon.com/2011/08/31/github-flow.html
 [Jenkins Git Plugin]:https://wiki.jenkins-ci.org/display/JENKINS/Git+Plugin
 [Jenkins Gradle plugin]:https://wiki.jenkins-ci.org/display/JENKINS/Gradle+Plugin
 [code of Entagen version]:https://github.com/entagen/jenkins-build-per-branch/blob/master/src/main/groovy/com/entagen/jenkins/TemplateJob.groovy
+
