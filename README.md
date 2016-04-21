@@ -1,4 +1,6 @@
 # Jenkins Build Per Git Flow Branch
+
+[![Join the chat at https://gitter.im/neoteric-eu/jenkins-build-per-gitflow-branch](https://badges.gitter.im/neoteric-eu/jenkins-build-per-gitflow-branch.svg)](https://gitter.im/neoteric-eu/jenkins-build-per-gitflow-branch?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 This script will allow you to keep your Jenkins jobs in sync with your Git repository (following Git Flow branching model).
 
 ### Genesis
