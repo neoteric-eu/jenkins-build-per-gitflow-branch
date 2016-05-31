@@ -21,132 +21,146 @@ import net.sf.json.JSON
 import net.sf.json.JSONObject
 
 class JenkinsApiTests {
-	
-	final shouldFail = new GroovyTestCase().&shouldFail
 
-	@Test
-	public void shouldThrowExceptionForInvalidUrl() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://some-invalid-hostname:9090/jenkins")
-		assert shouldFail(UnknownHostException) { api.getJobNames("myproj") }.contains("some-invalid-hostname")
-	}
+    final shouldFail = new GroovyTestCase().&shouldFail
 
-	@Test
-	public void shouldThrowHttpHostConnectExceptionWhenCantConnectToUrl() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:12345/jenkins")
-		assert "Connection to http://localhost:12345 refused" == shouldFail(HttpHostConnectException) { api.getJobNames("myproj") }
-	}
+    @Test
+    public void shouldThrowExceptionForInvalidUrl() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://some-invalid-hostname:9090/jenkins")
+        assert shouldFail(UnknownHostException) { api.getJobNames("myproj") }.contains("some-invalid-hostname")
+    }
 
-	@Test
-	public void test404ThrowsException() {
-		MockFor mockRESTClient = new MockFor(RESTClient)
-		mockRESTClient.demand.get { Map<String, ?> args ->
-			def ex = new HttpResponseException(404, "Not Found")
-			ex.metaClass.getResponse = {-> [status: 404] }
-			throw ex
-		}
+    @Test
+    public void shouldThrowHttpHostConnectExceptionWhenCantConnectToUrl() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:12345/jenkins")
+        assert "Connection to http://localhost:12345 refused" == shouldFail(HttpHostConnectException) {
+            api.getJobNames("myproj")
+        }
+    }
 
-		mockRESTClient.use {
-			JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/goodHostAndPortBadUrl")
-			assert "Unexpected failure with path http://localhost:9090/goodHostAndPortBadUrl/api/json, HTTP Status Code: 404, full map: [path:api/json]" == shouldFail() { api.getJobNames("myproj") }
-		}
-	}
+    @Test
+    public void test404ThrowsException() {
+        MockFor mockRESTClient = new MockFor(RESTClient)
+        mockRESTClient.demand.get { Map<String, ?> args ->
+            def ex = new HttpResponseException(404, "Not Found")
+            ex.metaClass.getResponse = { -> [status: 404] }
+            throw ex
+        }
 
-	@Test
-	public void testCreateInViewResolutor() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		assert api.resolveViewPath("abc/def") == "view/abc/view/def/"
-	}
+        mockRESTClient.use {
+            JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/goodHostAndPortBadUrl")
+            assert "Unexpected failure with path http://localhost:9090/goodHostAndPortBadUrl/api/json, HTTP Status Code: 404, full map: [path:api/json]" == shouldFail() {
+                api.getJobNames("myproj")
+            }
+        }
+    }
 
-	@Test
-	public void testGetJobNames_matchPrefix() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+    @Test
+    public void testCreateInViewResolutor() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+        assert api.resolveViewPath("abc/def") == "view/abc/view/def/"
+    }
 
-		Map json = [
-			jobs: [
-				[name: "myproj-FirstJob"],
-				[name: "otherproj-SecondJob"]
-			]
-		]
-		withJsonResponse(json) {
-			List<String> projectNames = api.getJobNames("myproj")
-			assert projectNames == ["myproj-FirstJob"]
-		}
-	}
+    @Test
+    public void testGetJobNames_matchPrefix() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 
-	@Test
-	public void testGetJobNames_noPrefix() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+        Map json = [
+                jobs: [
+                        [name: "myproj-FirstJob"],
+                        [name: "otherproj-SecondJob"]
+                ]
+        ]
+        withJsonResponse(json) {
+            List<String> projectNames = api.getJobNames("myproj")
+            assert projectNames == ["myproj-FirstJob"]
+        }
+    }
 
-		Map json = [
-			jobs: [
-				[name: "myproj-FirstJob"],
-				[name: "otherproj-SecondJob"]
-			]
-		]
-		withJsonResponse(json) {
-			List<String> projectNames = api.jobNames
-			assert projectNames.sort() == [
-				"myproj-FirstJob",
-				"otherproj-SecondJob"
-			]
-		}
-	}
+    @Test
+    public void testGetJobNames_noPrefix() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 
-	@Test
-	public void shouldChangeConfigBranchName() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
-		assertThat(result).contains("<name>*/release-1.0.0</name>")
-                .contains("<disabled>false</disabled>")
-                .contains("<project>job-build-release-1.0.0</project>")
-                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
-	}
+        Map json = [
+                jobs: [
+                        [name: "myproj-FirstJob"],
+                        [name: "otherproj-SecondJob"]
+                ]
+        ]
+        withJsonResponse(json) {
+            List<String> projectNames = api.jobNames
+            assert projectNames.sort() == [
+                    "myproj-FirstJob",
+                    "otherproj-SecondJob"
+            ]
+        }
+    }
 
-	@Test
-	public void shouldChangeGitUrl() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
-		assertThat(result).contains("<url>newGitUrl</url>")
-                .contains("<disabled>false</disabled>")
+    @Test
+    public void shouldChangeConfigBranchName() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
+        assertThat(result).contains("<name>*/release-1.0.0</name>")
+				.contains("<disabled>false</disabled>")
                 .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
     }
-	
-	@Test
-	public void shouldChangeSonarBranchName() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
+
+    @Test
+    public void shouldChangeGitUrl() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
+        assertThat(result).contains("<url>newGitUrl</url>")
+		        .contains("<disabled>false</disabled>")
+                .contains("<project>job-build-release-1.0.0</project>")
+                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
+    }
+
+    @Test
+    public void shouldChangeSonarBranchName() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
 		assertThat(result).contains("<branch>release-1.0.0</branch>")
                 .contains("<disabled>false</disabled>")
                 .contains("<project>job-build-release-1.0.0</project>")
                 .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
-	}
-	
-	@Test
-	public void shouldNotThrowExceptionWhenNoSonarConfig() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		def result = api.processConfig(CONFIG_NO_SONAR, "release-1.0.0", "newGitUrl", JOBS_FOR_BRANCH);
-        assertThat(result).contains("<disabled>true</disabled>")
-
     }
-	
-	@Test
-	public void testShouldStartJob() {
-		JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-		assert true == api.shouldStartJob(CONFIG)
-	}
 
-	public void withJsonResponse(Map toJson, Closure closure) {
-		JSON json = toJson as JSONObject
-		MockFor mockRESTClient = new MockFor(RESTClient)
-		mockRESTClient.demand.get { Map<String, ?> args ->
-			return [data: json]
-		}
+    @Test
+    public void shouldNotThrowExceptionWhenNoSonarConfig() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+        def result = api.processConfig(CONFIG_NO_SONAR, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
+        assertThat(result).contains("<disabled>true</disabled>")
+    }
 
-		mockRESTClient.use { closure() }
-	}
-	
-	static final String CONFIG = '''
+    @Test
+    public void shouldChangeScriptName() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "nohup /opt/projects/jenkins-deployment/neo-tasks.sh > /opt/projects/jenkins-deployment/neo-tasks.log &", JOBS_FOR_BRANCH);
+        assertThat(result).contains("<execCommand>nohup /opt/projects/jenkins-deployment/neo-tasks.sh &gt; /opt/projects/jenkins-deployment/neo-tasks.log &amp;</execCommand>")
+    }
+
+    @Test
+    public void testShouldStartJob() {
+        JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
+        assert true == api.shouldStartJob(CONFIG)
+    }
+
+    public void withJsonResponse(Map toJson, Closure closure) {
+        JSON json = toJson as JSONObject
+        MockFor mockRESTClient = new MockFor(RESTClient)
+        mockRESTClient.demand.get { Map<String, ?> args ->
+            return [data: json]
+        }
+
+        mockRESTClient.use { closure() }
+    }
+
+
+
+
+    static final String CONFIG = '''
 <maven2-moduleset plugin="maven-plugin@2.7.1">
   <actions/>
   <description></description>
@@ -255,7 +269,68 @@ class JenkinsApiTests {
       <selector class="hudson.plugins.copyartifact.StatusBuildSelector"/>
       <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
-  </prebuilders>  <postbuilders/>
+  </prebuilders>
+<postbuilders>
+<jenkins.plugins.publish__over__ssh.BapSshBuilderPlugin plugin="publish-over-ssh@1.12">
+<delegate>
+<consolePrefix>SSH:</consolePrefix>
+<delegate>
+<publishers>
+<jenkins.plugins.publish__over__ssh.BapSshPublisher>
+<configName>ntrc-delta</configName>
+<verbose>false</verbose>
+<transfers>
+<jenkins.plugins.publish__over__ssh.BapSshTransfer>
+<remoteDirectory/>
+<sourceFiles/>
+<excludes/>
+<removePrefix/>
+<remoteDirectorySDF>false</remoteDirectorySDF>
+<flatten>false</flatten>
+<cleanRemote>false</cleanRemote>
+<noDefaultExcludes>false</noDefaultExcludes>
+<makeEmptyDirs>false</makeEmptyDirs>
+<patternSeparator>[, ]+</patternSeparator>
+<execCommand>toBeChanged</execCommand>
+<execTimeout>120000</execTimeout>
+<usePty>false</usePty>
+</jenkins.plugins.publish__over__ssh.BapSshTransfer>
+</transfers>
+<useWorkspaceInPromotion>false</useWorkspaceInPromotion>
+<usePromotionTimestamp>false</usePromotionTimestamp>
+</jenkins.plugins.publish__over__ssh.BapSshPublisher>
+<jenkins.plugins.publish__over__ssh.BapSshPublisher>
+<configName>mordor</configName>
+<verbose>false</verbose>
+<transfers>
+<jenkins.plugins.publish__over__ssh.BapSshTransfer>
+<remoteDirectory/>
+<sourceFiles/>
+<excludes/>
+<removePrefix/>
+<remoteDirectorySDF>false</remoteDirectorySDF>
+<flatten>false</flatten>
+<cleanRemote>false</cleanRemote>
+<noDefaultExcludes>false</noDefaultExcludes>
+<makeEmptyDirs>false</makeEmptyDirs>
+<patternSeparator>[, ]+</patternSeparator>
+<execCommand>toBeChanged</execCommand>
+<execTimeout>120000</execTimeout>
+<usePty>false</usePty>
+</jenkins.plugins.publish__over__ssh.BapSshTransfer>
+</transfers>
+<useWorkspaceInPromotion>false</useWorkspaceInPromotion>
+<usePromotionTimestamp>false</usePromotionTimestamp>
+</jenkins.plugins.publish__over__ssh.BapSshPublisher>
+</publishers>
+<continueOnError>false</continueOnError>
+<failOnError>false</failOnError>
+<alwaysPublishFromMaster>false</alwaysPublishFromMaster>
+<hostConfigurationAccess class="jenkins.plugins.publish_over_ssh.BapSshPublisherPlugin" reference="../.."/>
+</delegate>
+</delegate>
+</jenkins.plugins.publish__over__ssh.BapSshBuilderPlugin>
+</postbuilders>
   <runPostStepsIfResult>
     <name>FAILURE</name>
     <ordinal>2</ordinal>
@@ -270,7 +345,8 @@ class JenkinsApiTests {
             new ConcreteJob(templateJob: new TemplateJob(jobName: "myproj-deploy-release"),
                     jobName: "job-deploy-release-1.0.0")
             ]
-static final String CONFIG_NO_SONAR = '''
+
+    static final String CONFIG_NO_SONAR = '''
 <maven2-moduleset plugin="maven-plugin@2.7.1">
   <actions/>
   <description></description>
