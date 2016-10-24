@@ -43,13 +43,13 @@ class SonarApi {
 
         String artifactId = root.rootModule.artifactId.text()
 
-        StringBuilder sonarProject = new StringBuilder("/api/projects/")
+        StringBuilder sonarProject = new StringBuilder("/api/projects/delete?key=")
         sonarProject.append(groupId).append(":").append(artifactId).append(":").append(branchName);
 
         println "Sonar API - path to delete: " + sonarProject
 
         try {
-            restClient.delete(path: sonarProject)
+            restClient.post(path: sonarProject)
         } catch (HttpResponseException e) {
             println "Sonar API - Error: $e.statusCode : $e.message"
         }
