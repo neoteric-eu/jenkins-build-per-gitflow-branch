@@ -17,6 +17,10 @@ class SonarApi {
         if (!sonarServerUrl.endsWith("/")) sonarServerUrl += "/"
         this.sonarServerUrl = sonarServerUrl
         this.restClient = new RESTClient(sonarServerUrl)
+        this.restClient.handler.failure = { resp ->
+            println "request failed with status ${resp.status}, response body was [${resp.entity.content.text}]"
+            return null
+        }
 
         println ("Sonar API - registered restClient with " + sonarServerUrl)
     }
@@ -43,13 +47,13 @@ class SonarApi {
 
         String artifactId = root.rootModule.artifactId.text()
 
-        StringBuilder sonarProject = new StringBuilder("/api/projects/delete?key=")
+        StringBuilder sonarProject = new StringBuilder("")
         sonarProject.append(groupId).append(":").append(artifactId).append(":").append(branchName);
 
-        println "Sonar API - path to delete: " + sonarProject
+        println "Sonar API - project to delete: " + sonarProject
 
         try {
-            restClient.post(path: sonarProject)
+            restClient.post(path: "/api/projects/delete", query: ['key' : sonarProject])
         } catch (HttpResponseException e) {
             println "Sonar API - Error: $e.statusCode : $e.message"
         }

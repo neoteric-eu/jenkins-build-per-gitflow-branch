@@ -15,10 +15,10 @@ class SonarApiReadOnly extends SonarApi{
 
         String artifactId = root.rootModule.artifactId.text()
 
-        StringBuilder sonarProject = new StringBuilder("/api/projects/delete?key=")
+        StringBuilder sonarProject = new StringBuilder("")
         sonarProject.append(groupId).append(":").append(artifactId).append(":").append(branchName);
 
-        println "Sonar API - path to delete: " + sonarProject
+        println "Sonar API - project to delete: " + sonarProject
         println "Sonar API - warning - DRY RUN - skipped delete"
     }
 }
