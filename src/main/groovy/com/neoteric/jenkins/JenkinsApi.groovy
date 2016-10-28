@@ -118,15 +118,14 @@ class JenkinsApi {
             startOnCreateParam.parent().remove(startOnCreateParam)
         }
 
-        //check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
-        def propertiesNode = root.properties
-        def parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
-
-        if (!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
-            root.remove(propertiesNode)
-            new Node(root, 'properties')
-        }
-
+		//check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
+		def propertiesNode = root.properties
+		def parameterDefinitions = propertiesNode."hudson.model.ParametersDefinitionProperty"
+		def parameterDefinitionsProperty = parameterDefinitions.parameterDefinitions[0]
+		
+		if(!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
+			parameterDefinitions.replaceNode{}
+		}
 
         def writer = new StringWriter()
         XmlNodePrinter xmlPrinter = new XmlNodePrinter(new PrintWriter(writer))
