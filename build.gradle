@@ -16,11 +16,13 @@ dependencies {
     compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
 }
 
-task createSourceDirs(description : 'Create empty source directories for all defined sourceSets') << {
-    sourceSets*.allSource.srcDirs.flatten().each { File sourceDirectory ->
-        if (!sourceDirectory.exists()) {
-            println "Making $sourceDirectory"
-            sourceDirectory.mkdirs()
+task createSourceDirs(description : 'Create empty source directories for all defined sourceSets') {
+    doLast {
+        sourceSets*.allSource.srcDirs.flatten().each { File sourceDirectory ->
+            if (!sourceDirectory.exists()) {
+                println "Making $sourceDirectory"
+                    sourceDirectory.mkdirs()
+            }
         }
     }
 }
@@ -33,8 +35,4 @@ task syncWithRepo(dependsOn: 'classes', type: JavaExec) {
         if (System.getProperty(it)) systemProperty it, System.getProperty(it)
     }
 
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.12'
 }
