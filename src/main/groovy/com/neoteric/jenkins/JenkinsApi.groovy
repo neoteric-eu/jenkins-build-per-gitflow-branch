@@ -1,18 +1,17 @@
 package com.neoteric.jenkins
 
+
 import groovyx.net.http.ContentType
 import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.RESTClient
-import org.apache.commons.lang.StringEscapeUtils
-
-import static groovyx.net.http.ContentType.*
-
-import org.apache.http.conn.HttpHostConnectException
-import org.apache.http.client.HttpResponseException
-import org.apache.http.HttpStatus
-import org.apache.http.HttpRequestInterceptor
-import org.apache.http.protocol.HttpContext
 import org.apache.http.HttpRequest
+import org.apache.http.HttpRequestInterceptor
+import org.apache.http.HttpStatus
+import org.apache.http.client.HttpResponseException
+import org.apache.http.conn.HttpHostConnectException
+import org.apache.http.protocol.HttpContext
+
+import static groovyx.net.http.ContentType.TEXT
 
 class JenkinsApi {
 
@@ -226,6 +225,14 @@ class JenkinsApi {
                     crumbInfo = [:]
                     crumbInfo['field'] = response.data.crumbRequestField
                     crumbInfo['crumb'] = response.data.crumb
+                    def cookies = []
+                    response.headers['Set-Cookie'].each {
+                        //[Set-Cookie: JSESSIONID=E68D4799D4D6282F0348FDB7E8B88AE9; Path=/frontoffice/; HttpOnly]
+                        String cookie = it.value.split(';')[0]
+                        cookies.add(cookie)
+                    }
+                    crumbInfo['cookies'] = cookies
+                    println "Found crumb data: " + crumbInfo
                 } else {
                     println "Found crumbIssuer but didn't understand the response data trying to move on."
                     println "Response data: " + response.data
@@ -241,11 +248,11 @@ class JenkinsApi {
             }
         }
 
-        if (crumbInfo) {
-            params[crumbInfo.field] = crumbInfo.crumb
-        }
-
         HTTPBuilder http = new HTTPBuilder(jenkinsServerUrl)
+        if (crumbInfo) {
+            http.getHeaders().put(crumbInfo.field, crumbInfo.crumb)
+            http.getHeaders().put('Cookie', crumbInfo.cookies.join(';'))
+        }
 
         if (requestInterceptor) {
             http.client.addRequestInterceptor(this.requestInterceptor)
