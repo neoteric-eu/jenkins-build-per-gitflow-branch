@@ -19,7 +19,8 @@ class Main {
             pwd: [longOpt: 'jenkins-password', required: false, args: 1, argName: 'jenkinsPassword', description: "Jenkins password - gradle flag -DjenkinsPassword=<jenkinsPassword>"],
             sp : [longOpt: 'sonar-password', required: false, args: 1, argName: 'sonarPassword', description: "Sonar password - gradle flag -DsonarPassword=<sonarPassword>"],
             su : [longOpt: 'sonar-user', required: false, args: 1, argName: 'sonarUser', description: "Sonar username - gradle flag -DsonarUser=<sonarUser>"],
-            surl : [longOpt: 'sonar-url', required: false, args: 1, argName: 'sonarUrl', description: "Sonar URL - gradle flag -DsonarUrl=<sonarUrl>"]
+            surl : [longOpt: 'sonar-url', required: false, args: 1, argName: 'sonarUrl', description: "Sonar URL - gradle flag -DsonarUrl=<sonarUrl>"],
+            bp: [longOpt: 'branch-prefix', required: false, args: 1, argName: 'branchPrefix', description: "Git Branch Prefix - gradle flag -DbranchPrefix=<branchPrefix>"]
     ]
 
     public static void main(String[] args) {

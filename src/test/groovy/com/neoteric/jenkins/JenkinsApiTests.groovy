@@ -99,34 +99,45 @@ class JenkinsApiTests {
     @Test
     public void shouldChangeConfigBranchName() {
         JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a");
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
         assertThat(result).contains("<name>*/release-1.0.0</name>")
+				.contains("<disabled>false</disabled>")
+                .contains("<project>job-build-release-1.0.0</project>")
+                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
     }
 
     @Test
     public void shouldChangeGitUrl() {
         JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a");
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
         assertThat(result).contains("<url>newGitUrl</url>")
+		        .contains("<disabled>false</disabled>")
+                .contains("<project>job-build-release-1.0.0</project>")
+                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
     }
 
     @Test
     public void shouldChangeSonarBranchName() {
         JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a");
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
+		assertThat(result).contains("<branch>release-1.0.0</branch>")
+                .contains("<disabled>false</disabled>")
+                .contains("<project>job-build-release-1.0.0</project>")
+                .contains("<childProjects>job-deploy-release-1.0.0, some-other-job</childProjects>")
     }
 
     @Test
     public void shouldNotThrowExceptionWhenNoSonarConfig() {
         JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
-        def result = api.processConfig(CONFIG_NO_SONAR, "release-1.0.0", "newGitUrl", "n/a");
+        def result = api.processConfig(CONFIG_NO_SONAR, "release-1.0.0", "newGitUrl", "n/a", JOBS_FOR_BRANCH);
+        assertThat(result).contains("<disabled>true</disabled>")
     }
 
     @Test
     public void shouldChangeScriptName() {
         JenkinsApi api = new JenkinsApi(jenkinsServerUrl: "http://localhost:9090/jenkins")
 
-        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "nohup /opt/projects/jenkins-deployment/neo-tasks.sh > /opt/projects/jenkins-deployment/neo-tasks.log &");
+        def result = api.processConfig(CONFIG, "release-1.0.0", "newGitUrl", "nohup /opt/projects/jenkins-deployment/neo-tasks.sh > /opt/projects/jenkins-deployment/neo-tasks.log &", JOBS_FOR_BRANCH);
         assertThat(result).contains("<execCommand>nohup /opt/projects/jenkins-deployment/neo-tasks.sh &gt; /opt/projects/jenkins-deployment/neo-tasks.log &amp;</execCommand>")
     }
 
@@ -159,6 +170,11 @@ class JenkinsApiTests {
       <parameterDefinitions>
         <hudson.model.BooleanParameterDefinition>
           <name>startOnCreate</name>
+          <description></description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>enableOnCreate</name>
           <description></description>
           <defaultValue>true</defaultValue>
         </hudson.model.BooleanParameterDefinition>
@@ -197,7 +213,7 @@ class JenkinsApiTests {
     <extensions/>
   </scm>
   <canRoam>true</canRoam>
-  <disabled>false</disabled>
+  <disabled>true</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers/>
@@ -233,9 +249,27 @@ class JenkinsApiTests {
       <globalSettings class="jenkins.mvn.DefaultGlobalSettingsProvider"/>
       <usePrivateRepository>false</usePrivateRepository>
     </hudson.plugins.sonar.SonarPublisher>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>myproj-deploy-release, some-other-job</childProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
   </publishers>
   <buildWrappers/>
-  <prebuilders/>
+  <prebuilders>
+    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.33">
+      <project>myproj-build-release</project>
+      <filter></filter>
+      <target></target>
+      <excludes></excludes>
+      <selector class="hudson.plugins.copyartifact.StatusBuildSelector"/>
+      <doNotFingerprintArtifacts>false</doNotFingerprintArtifacts>
+    </hudson.plugins.copyartifact.CopyArtifact>
+  </prebuilders>
 <postbuilders>
 <jenkins.plugins.publish__over__ssh.BapSshBuilderPlugin plugin="publish-over-ssh@1.12">
 <delegate>
@@ -305,6 +339,13 @@ class JenkinsApiTests {
   </runPostStepsIfResult>
 </maven2-moduleset>'''
 
+    static final List<ConcreteJob> JOBS_FOR_BRANCH =  [
+            new ConcreteJob(templateJob: new TemplateJob(jobName: "myproj-build-release"),
+                    jobName: "job-build-release-1.0.0"),
+            new ConcreteJob(templateJob: new TemplateJob(jobName: "myproj-deploy-release"),
+                    jobName: "job-deploy-release-1.0.0")
+            ]
+
     static final String CONFIG_NO_SONAR = '''
 <maven2-moduleset plugin="maven-plugin@2.7.1">
   <actions/>
@@ -353,7 +394,7 @@ class JenkinsApiTests {
     <extensions/>
   </scm>
   <canRoam>true</canRoam>
-  <disabled>false</disabled>
+  <disabled>true</disabled>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers/>

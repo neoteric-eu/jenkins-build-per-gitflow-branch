@@ -1,23 +1,23 @@
 package com.neoteric.jenkins
 
+
 import groovyx.net.http.ContentType
 import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.RESTClient
-import org.apache.commons.lang.StringEscapeUtils
-
-import static groovyx.net.http.ContentType.*
-
-import org.apache.http.conn.HttpHostConnectException
-import org.apache.http.client.HttpResponseException
-import org.apache.http.HttpStatus
-import org.apache.http.HttpRequestInterceptor
-import org.apache.http.protocol.HttpContext
 import org.apache.http.HttpRequest
+import org.apache.http.HttpRequestInterceptor
+import org.apache.http.HttpStatus
+import org.apache.http.client.HttpResponseException
+import org.apache.http.conn.HttpHostConnectException
+import org.apache.http.protocol.HttpContext
+
+import static groovyx.net.http.ContentType.TEXT
 
 class JenkinsApi {
 
 
     final String SHOULD_START_PARAM_NAME = "startOnCreate"
+	final String SHOULD_ENABLE_ON_CREATE = "enableOnCreate"
     String jenkinsServerUrl
     RESTClient restClient
     HttpRequestInterceptor requestInterceptor
@@ -57,10 +57,10 @@ class JenkinsApi {
         response.data.text
     }
 
-    void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl, String scriptCommand) {
+    void cloneJobForBranch(String jobPrefix, ConcreteJob missingJob, String createJobInView, String gitUrl, String scriptCommand, List<ConcreteJob> jobsForBranch) {
         String createJobInViewPath = resolveViewPath(createJobInView)
         println "-----> createInView after" + createJobInView
-        String missingJobConfig = configForMissingJob(missingJob, gitUrl, scriptCommand)
+        String missingJobConfig = configForMissingJob(missingJob, gitUrl, scriptCommand, jobsForBranch)
         TemplateJob templateJob = missingJob.templateJob
 
         //Copy job with jenkins copy job api, this will make sure jenkins plugins get the call to make a copy if needed (promoted builds plugin needs this)
@@ -84,13 +84,13 @@ class JenkinsApi {
         elements.join();
     }
 
-    String configForMissingJob(ConcreteJob missingJob, String gitUrl, String scriptCommand) {
+    String configForMissingJob(ConcreteJob missingJob, String gitUrl, String scriptCommand, List<ConcreteJob> jobsForBranch) {
         TemplateJob templateJob = missingJob.templateJob
         String config = getJobConfig(templateJob.jobName)
-        return processConfig(config, missingJob.branchName, gitUrl, scriptCommand)
+        return processConfig(config, missingJob.branchName, gitUrl, scriptCommand, jobsForBranch)
     }
 
-    public String processConfig(String entryConfig, String branchName, String gitUrl, String scriptCommand) {
+    public String processConfig(String entryConfig, String branchName, String gitUrl, String scriptCommand, List<ConcreteJob> jobsForBranch) {
 
         def root = new XmlParser().parseText(entryConfig)
         // update branch name
@@ -112,17 +112,28 @@ class JenkinsApi {
             }
         }
 
-        //remove template build variable
+        // update project relationships
+        replaceJobName(jobsForBranch, root.prebuilders."hudson.plugins.copyartifact.CopyArtifact".project)
+        replaceJobName(jobsForBranch, root.publishers."hudson.tasks.BuildTrigger".childProjects)
+
+        //remove template build / enable variable
         Node startOnCreateParam = findStartOnCreateParameter(root)
         if (startOnCreateParam) {
             startOnCreateParam.parent().remove(startOnCreateParam)
         }
+        Node enableOnCreateParam = findEnableOnCreateParameter(root)
+		if (enableOnCreateParam) {
+			if (enableOnCreateParam.defaultValue[0]?.text().toBoolean()) {
+				root.disabled[0].value = "false"
+			}
+			enableOnCreateParam.parent().remove(enableOnCreateParam)
+		}
 
         //check if it was the only parameter - if so, remove the enclosing tag, so the project won't be seen as build with parameters
         def propertiesNode = root.properties
         def parameterDefinitionsProperty = propertiesNode."hudson.model.ParametersDefinitionProperty".parameterDefinitions[0]
 
-        if (!parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
+        if (parameterDefinitionsProperty != null && !parameterDefinitionsProperty.attributes() && !parameterDefinitionsProperty.children() && !parameterDefinitionsProperty.text()) {
             root.remove(propertiesNode)
             new Node(root, 'properties')
         }
@@ -152,11 +163,19 @@ class JenkinsApi {
         return startOnCreateParam.defaultValue[0]?.text().toBoolean()
     }
 
-    Node findStartOnCreateParameter(Node root) {
-        return root.properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions."hudson.model.BooleanParameterDefinition".find {
-            it.name[0].text() == SHOULD_START_PARAM_NAME
-        }
-    }
+	Node findStartOnCreateParameter(Node root) {
+		return findParameter(root, SHOULD_START_PARAM_NAME)
+	}
+
+	Node findEnableOnCreateParameter(Node root) {
+		return findParameter(root, SHOULD_ENABLE_ON_CREATE)
+	}
+
+	static Node findParameter(Node root, String parameter) {
+		return root.properties."hudson.model.ParametersDefinitionProperty".parameterDefinitions."hudson.model.BooleanParameterDefinition".find {
+			it.name[0].text() == parameter
+		}
+	}
 
     void deleteJob(String jobName) {
         println "deleting job $jobName"
@@ -206,6 +225,14 @@ class JenkinsApi {
                     crumbInfo = [:]
                     crumbInfo['field'] = response.data.crumbRequestField
                     crumbInfo['crumb'] = response.data.crumb
+                    def cookies = []
+                    response.headers['Set-Cookie'].each {
+                        //[Set-Cookie: JSESSIONID=E68D4799D4D6282F0348FDB7E8B88AE9; Path=/frontoffice/; HttpOnly]
+                        String cookie = it.value.split(';')[0]
+                        cookies.add(cookie)
+                    }
+                    crumbInfo['cookies'] = cookies
+                    println "Found crumb data: " + crumbInfo
                 } else {
                     println "Found crumbIssuer but didn't understand the response data trying to move on."
                     println "Response data: " + response.data
@@ -221,11 +248,11 @@ class JenkinsApi {
             }
         }
 
-        if (crumbInfo) {
-            params[crumbInfo.field] = crumbInfo.crumb
-        }
-
         HTTPBuilder http = new HTTPBuilder(jenkinsServerUrl)
+        if (crumbInfo) {
+            http.getHeaders().put(crumbInfo.field, crumbInfo.crumb)
+            http.getHeaders().put('Cookie', crumbInfo.cookies.join(';'))
+        }
 
         if (requestInterceptor) {
             http.client.addRequestInterceptor(this.requestInterceptor)
@@ -247,4 +274,13 @@ class JenkinsApi {
         return status
     }
 
+    protected static void replaceJobName(List<ConcreteJob> jobs, NodeList nodes) {
+        nodes.each {Node node ->
+            String text = node.text();
+            jobs.each { ConcreteJob job ->
+                text = text.replace(job.templateJob.jobName, job.jobName)
+            }
+            node.value = text
+        }
+    }
 }

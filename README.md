@@ -60,6 +60,7 @@ The whole idea is to have a single Jenkins job which executes periodically, chec
 - `-DsonarUrl` URL of the Sonar. (optional)
 - `-DsonarUser` Sonar HTTP basic authorization user name. (optional)
 - `-DsonarPassword` Sonar HTTP basic authorisation password. (optional)
+- `-DbranchPrefix` Prefix of git branches to distinguish a project. For example would `-DbranchPrefix=test` mean that Git branches with the prefixes `testrelease-`, `testhotfix-` and `testfeature-` are considered.
 
 Sample parameters configuration:
 ```
@@ -80,12 +81,13 @@ The idea of this script is to be able to handle separate template version per Gi
 
 Notes on configuring your template:
 - If you want to start your job immediately after it's created, mark the template as parametrized build and add a Boolean parameter named **startOnCreate** and set it's default value to true (tick in the checkbox)
+- If you want to enable your job after it's created (maybe you have disabled it because it's scheduled), mark the template as parametrized build and add a Boolean parameter named **enableOnCreate** and set it's default value to true (tick in the checkbox)
 - Git repository URL is going to be replaced by the script (with the project Git URL set in sync job parameters)
 - Branch to build is going to be determined and set by the script
 - If you use Sonar and want to have Sonar builds separated for each branch type, just add Sonar capability to your template and the Sonar branch option will be determined and set by the script
 
 ##### 4. Sonar Notes
-When a -DsonarUser and -DsonarUrl flags are both used script will try to delete Sonar project created by a template, when a job in Jenkins becomes deprecated. 
+When a -DsonarUser and -DsonarUrl flags are both used script will try to delete Sonar project created by a template, when a job in Jenkins becomes deprecated.
 
 [Jenkins Build Per Branch]:http://entagen.github.io/jenkins-build-per-branch/
 [GitHub flow]:http://scottchacon.com/2011/08/31/github-flow.html

@@ -6,21 +6,23 @@ repositories {
 }
 
 dependencies {
-    compile 'org.codehaus.groovy:groovy-all:2.3.3'
-    compile 'org.apache.ivy:ivy:2.2.0'
-    compile 'commons-cli:commons-cli:1.2' // should be part of groovy, but not available when running for some reason
-	compile 'org.jooq:joox:1.2.0'
-    testCompile 'junit:junit:4.11'
-    testCompile 'org.assertj:assertj-core:1.7.0'
-	testCompile 'com.github.stefanbirkner:system-rules:1.7.0'
-    compile 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
+    implementation 'org.codehaus.groovy:groovy-all:2.3.3'
+    implementation 'org.apache.ivy:ivy:2.2.0'
+    implementation 'commons-cli:commons-cli:1.2' // should be part of groovy, but not available when running for some reason
+	implementation 'org.jooq:joox:1.2.0'
+    testImplementation 'junit:junit:4.11'
+    testImplementation 'org.assertj:assertj-core:1.7.0'
+	testImplementation 'com.github.stefanbirkner:system-rules:1.7.0'
+    implementation 'org.codehaus.groovy.modules.http-builder:http-builder:0.7.1'
 }
 
-task createSourceDirs(description : 'Create empty source directories for all defined sourceSets') << {
-    sourceSets*.allSource.srcDirs.flatten().each { File sourceDirectory ->
-        if (!sourceDirectory.exists()) {
-            println "Making $sourceDirectory"
-            sourceDirectory.mkdirs()
+task createSourceDirs(description : 'Create empty source directories for all defined sourceSets') {
+    doLast {
+        sourceSets*.allSource.srcDirs.flatten().each { File sourceDirectory ->
+            if (!sourceDirectory.exists()) {
+                println "Making $sourceDirectory"
+                    sourceDirectory.mkdirs()
+            }
         }
     }
 }
@@ -29,12 +31,8 @@ task syncWithRepo(dependsOn: 'classes', type: JavaExec) {
     main = 'com.neoteric.jenkins.Main'
     classpath = sourceSets.main.runtimeClasspath
     // pass through specified system properties to the call to main
-    ['help', 'jenkinsUrl', 'jenkinsUser', 'jenkinsPassword', 'gitUrl', 'jobPrefix', 'templateJobPrefix', 'dryRun', 'createJobInView', 'scriptCommand', 'noDelete', 'sonarPassword', 'sonarUser', 'sonarUrl'].each {
+    ['help', 'jenkinsUrl', 'jenkinsUser', 'jenkinsPassword', 'gitUrl', 'jobPrefix', 'templateJobPrefix', 'dryRun', 'createJobInView', 'scriptCommand', 'noDelete', 'sonarPassword', 'sonarUser', 'sonarUrl', 'branchPrefix'].each {
         if (System.getProperty(it)) systemProperty it, System.getProperty(it)
     }
 
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.12'
 }
